@@ -1,0 +1,3 @@
+*.o
+pg_trace
+Makefile
