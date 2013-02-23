@@ -38,7 +38,7 @@ lsof_open(pid_t pid)
 
 	debug("lsof_open(pid=%d)\n", pid);
 
-	cpid = pid_to_cpid(pid);
+	cpid = xitoa((int)pid);
 
 	if (pipe(pipefd) == -1)
 		err(1, "lsof_open:pipe()");
@@ -64,7 +64,7 @@ lsof_open(pid_t pid)
 	}
 
 	if (close(pipe_w) == -1)
-		err(1, "strace_open:close(pipe_w)");
+		err(1, "lsof_open:close(pipe_w)");
 
 	return pipe_r;
 }
@@ -121,11 +121,10 @@ lsof_read_lines(int fd)
 			break;
 		/* fd number */
 		case 'f':
+			current->fd = xatoi(c);
 			break;
+		/* file type */
 		case 't':
-			if (current == NULL)
-				break;
-
 			if (strcmp(line, "CHR") == 0)
 				current->type = FILE_TYPE_CHR;
 			else if (strcmp(line, "REG") == 0)
@@ -140,10 +139,8 @@ lsof_read_lines(int fd)
 				current->type = FILE_TYPE_UNKNOWN;
 			}
 			break;
+		/* file name */
 		case 'n':
-			if (current == NULL)
-				break;
-
 			current->name = xstrdup(c);
 			break;
 		default:
@@ -159,7 +156,7 @@ lsof_refresh_cache(pid_t pid)
 {
 	int pipe;
 
-	debug("lsos_refresh_cache(pid=%d)\n", pid);
+	debug("lsof_refresh_cache(pid=%d)\n", pid);
 
 	fd_cache_clear();
 

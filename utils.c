@@ -25,36 +25,36 @@
 
 
 /*
- * Converts a char representation of a PID to a pid_t.
+ * Converts a char to int, with fatal error if anything goes wrong.
  */
-pid_t
-cpid_to_pid(char *cpid)
+int
+xatoi(char *c)
 {
-	pid_t pid;
+	int i;
 	char *endptr;
 
-	pid = strtol(cpid, &endptr, 10);
+	i = strtol(c, &endptr, 10);
 
 	if (*endptr != '\0')
-		errx(1, "cpid_to_pid() invalid PID");
+		errx(1, "xatoi() invalid int");
 
-	if (pid == (pid_t)LONG_MAX || pid == (pid_t)LONG_MIN) {
-		err(1, "cpid_to_pid()");
+	if (i == (int)LONG_MAX || i == (int)LONG_MIN) {
+		err(1, "xatoi()");
 	}
 
-	return pid;
+	return i;
 }
 
 
 /*
- * Converts a pid_t into a char* pid.
+ * Converts an int to char*.
  */
 char *
-pid_to_cpid(pid_t pid)
+xitoa(int i)
 {
 	char buf[16];
 
-	snprintf(buf, sizeof(buf), "%d", pid);
+	snprintf(buf, sizeof(buf), "%d", i);
 
 	return xstrdup(buf);
 }

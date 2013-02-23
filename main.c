@@ -32,9 +32,14 @@ int debug = 0;
 void
 process_fd_func(char *func_name, int argc, char **argv, char *result)
 {
-	char *fd;
-	fd = argv[0];
-	printf("%s fd=%s\n", func_name, fd);
+	int fd;
+	fd_desc *desc;
+
+	fd = xatoi(argv[0]);
+
+	desc = fd_cache_get(fd);
+
+	printf("%s fd=%d %s\n", func_name, fd, desc->name);
 }
 
 
@@ -71,14 +76,12 @@ main(int argc, const char **argv)
 
 	debug = 1;
 
-	pid = cpid_to_pid((char*)argv[1]);
-
-	/*
-	pipe = strace_open(pid);
-	strace_read_lines(pipe, process_func);
-	*/
+	pid = xatoi((char*)argv[1]);
 
 	lsof_refresh_cache(pid);
+
+	pipe = strace_open(pid);
+	strace_read_lines(pipe, process_func);
 
 	return 0;
 }

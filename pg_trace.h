@@ -56,10 +56,11 @@ void		 lsof_refresh_cache(pid_t);
 /* fdcache.c */
 void		 fd_cache_clear();
 fd_desc		*fd_cache_next();
+fd_desc		*fd_cache_get(int);
 
 /* utils.c */
-pid_t		 cpid_to_pid(char *);
-char		*pid_to_cpid(pid_t);
+int		 xatoi(char *);
+char		*xitoa(int);
 
 /* xmalloc.c */
 char 		*xstrdup(const char *);

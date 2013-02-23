@@ -32,7 +32,7 @@ strace_open(pid_t pid)
 	int strace_pid;
 	char *cpid;
 
-	cpid = pid_to_cpid(pid);
+	cpid = xitoa((int)pid);
 
 	if (pipe(pipefd) == -1)
 		err(1, "strace_open:pipe()");

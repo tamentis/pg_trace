@@ -46,9 +46,10 @@ fd_cache_clear() {
 	debug("fd_cache_clear()\n");
 
 	if (fd_cache != NULL) {
-		for (i = 0; i < fd_cache_size; i++) {
+		for (i = 0; i < fd_cache_length; i++) {
 			xfree(fd_cache[i].name);
 		}
+		fd_cache_length = 0;
 	}
 }
 
@@ -72,4 +73,21 @@ fd_cache_next()
 	item = &fd_cache[fd_cache_length - 1];
 
 	return item;
+}
+
+
+/*
+ * Retrieve an fd_desc based on its fd.
+ */
+fd_desc *
+fd_cache_get(int fd)
+{
+	int i;
+
+	for (i = 0; i < fd_cache_length; i++) {
+		if (fd_cache[i].fd == fd)
+			return &fd_cache[i];
+	}
+
+	return NULL;
 }
