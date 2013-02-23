@@ -15,6 +15,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <err.h>
@@ -22,27 +23,7 @@
 #include "pg_trace.h"
 
 
-#define MAX_FUNCTION_ARGUMENTS	32
-
-
-/*
-void
-process_func_read(int argc, char **argv, char *result)
-{
-	char *fd;
-	fd = argv[0];
-	printf("read fd=%s\n");
-}
-
-
-void
-process_func_write(int argc, char **argv, char *result)
-{
-	char *fd;
-	fd = argv[0];
-	printf("write fd=%s\n");
-}
-*/
+int debug = 0;
 
 
 /*
@@ -83,10 +64,21 @@ int
 main(int argc, const char **argv)
 {
 	int pipe;
+	pid_t pid;
 
-	pipe = strace_open();
+	// TODO - getopt
+	if (argc != 2) errx(1, "usage?");
 
+	debug = 1;
+
+	pid = cpid_to_pid((char*)argv[1]);
+
+	/*
+	pipe = strace_open(pid);
 	strace_read_lines(pipe, process_func);
+	*/
+
+	lsof_refresh_cache(pid);
 
 	return 0;
 }

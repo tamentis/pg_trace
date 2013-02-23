@@ -1,6 +1,9 @@
 pg_trace - trace postgres processes
 ===================================
 
+          "You can guess most of what a database is doing from the
+              activity of its file descriptors." - Justin Bieber
+
 INTRO
     Wrapper around ``strace``-like tools and ``lsof`` that prints the tables
     being accessed by a particular PostgreSQL process (e.g. backend).
@@ -24,7 +27,7 @@ DISCLAIMER
 
 
 USAGE
-    It should work like lsof, strace:
+    It shall work like it's minions, lsof and strace:
 
         pg_trace -p 12345
 

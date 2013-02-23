@@ -19,7 +19,9 @@
 /* OPENBSD ORIGINAL: lib/libc/string/strlcpy.c */
 
 #include <sys/types.h>
+
 #include <string.h>
+
 
 /*
  * Copy src to string dst of size siz.  At most siz-1 characters

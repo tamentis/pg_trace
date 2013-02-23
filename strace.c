@@ -19,40 +19,45 @@
 #include <string.h>
 #include <err.h>
 
+#include "pg_trace.h"
+
 
 #define MAX_FUNCTION_ARGUMENTS	32
 
 
 int
-strace_open()
+strace_open(pid_t pid)
 {
 	int pipefd[2], pipe_r, pipe_w;
-	int pid;
+	int strace_pid;
+	char *cpid;
+
+	cpid = pid_to_cpid(pid);
 
 	if (pipe(pipefd) == -1)
-		err(1, "open_strace:pipe()");
+		err(1, "strace_open:pipe()");
 
 	pipe_r = pipefd[0];
 	pipe_w = pipefd[1];
 
-	pid = fork();
-	if (pid == -1) {
-		err(1, "open_strace:fork()");
-	} else if (pid == 0) {
+	strace_pid = fork();
+	if (strace_pid == -1) {
+		err(1, "strace_open:fork()");
+	} else if (strace_pid == 0) {
 		if (dup2(pipe_w, STDERR_FILENO) == -1)
-			err(1, "open_strace:dup2(pipe_w, stdin)");
+			err(1, "strace_open:dup2(pipe_w, stderr)");
 		if (close(pipe_r) == -1)
-			err(1, "open_strace:close(pipe_r)");
+			err(1, "strace_open:close(pipe_r)");
 		if (execl("/usr/bin/strace", "strace",
 					"-q",		/* quiet */
 					"-s", "8",	/* no need for data */
-					"-p", "29514",	/* pid to spy on */
+					"-p", cpid,	/* pid to spy on */
 					(char*)NULL) == -1)
-			err(1, "-%s-", "open_strace:execl");
+			err(1, "strace_open:execl()");
 	}
 
 	if (close(pipe_w) == -1)
-		err(1, "open_strace:close(pipe_w)");
+		err(1, "strace_open:close(pipe_w)");
 
 	return pipe_r;
 }
@@ -124,11 +129,11 @@ void
 strace_read_lines(int fd, void (*func_handler)(char *, int, char **, char*))
 {
 	FILE *fp;
-	char line[1024];
+	char line[MAX_LINE_LENGTH];
 
 	fp = fdopen(fd, "r");
 	if (fp == NULL)
-		err(1, "read_lines:fdopen()");
+		err(1, "strace_read_lines:fdopen()");
 
 	while (fgets(line, sizeof(line), fp)) {
 		strace_process_line(line, func_handler);
