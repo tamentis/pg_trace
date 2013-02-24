@@ -24,7 +24,7 @@
 #define FD_CACHE_GROWTH		64
 
 
-extern int debug;
+extern int debug_flag;
 
 
 /*

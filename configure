@@ -25,6 +25,10 @@ generate_makefile() {
 
 	echo "CFLAGS+=-DPG_TRACE_VERSION=\\\"$PG_TRACE_VERSION\\\" $X_CFLAGS"
 
+	# Add postgres config stuff
+	echo "CFLAGS+=-I`pg_config --includedir-server`"
+	# echo "LDFLAGS+=-lpq"
+
 	if [ "$DEBUG_MODE" = "Y" ]; then
 		echo "CFLAGS+=-ggdb -O0"
 	else

@@ -21,7 +21,7 @@
 #include "pg_trace.h"
 
 
-extern int debug;
+extern int debug_flag;
 
 
 /*

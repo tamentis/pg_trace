@@ -27,7 +27,7 @@
 #define MAX_LINE_LENGTH		1024
 
 
-#define debug(...) if (debug) fprintf(stderr, __VA_ARGS__)
+#define debug(...) if (debug_flag) fprintf(stderr, __VA_ARGS__)
 
 
 enum fd_file_type {

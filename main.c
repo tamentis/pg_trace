@@ -23,7 +23,7 @@
 #include "pg_trace.h"
 
 
-int debug = 0;
+int debug_flag = 0;
 
 
 /*
@@ -74,14 +74,18 @@ main(int argc, const char **argv)
 	// TODO - getopt
 	if (argc != 2) errx(1, "usage?");
 
-	debug = 1;
+	debug_flag = 1;
 
+	/*
 	pid = xatoi((char*)argv[1]);
 
 	lsof_refresh_cache(pid);
 
 	pipe = strace_open(pid);
 	strace_read_lines(pipe, process_func);
+	*/
+
+	pg_do_stuff();
 
 	return 0;
 }
