@@ -60,6 +60,7 @@ fd_desc		*fd_cache_get(int);
 
 /* utils.c */
 int		 xatoi(char *);
+int		 xatoi_or_zero(char *);
 char		*xitoa(int);
 
 /* xmalloc.c */
@@ -75,3 +76,6 @@ int		 xvsnprintf(char *, size_t, const char *, va_list);
 
 /* strlcpy.c */
 size_t		 strlcpy(char *, const char *, size_t);
+
+/* pg.c */
+char		*pg_get_relname_from_filepath(char *);

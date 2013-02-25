@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <err.h>
 
 #include "pg_trace.h"
 
@@ -76,7 +77,6 @@ lsof_read_lines(int fd)
 	FILE *fp;
 	char line[MAX_LINE_LENGTH], type, *c;
 	fd_desc *current = NULL;
-	int l;
 
 	debug("lsof_read_lines(fd=%d)\n", fd);
 

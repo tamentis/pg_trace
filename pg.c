@@ -45,7 +45,6 @@ char *
 pg_get_pg_class_filepath()
 {
 	int filenode;
-	char *filepath;
 	char buffer[MAXPGPATH];
 
 	/*
@@ -61,15 +60,6 @@ pg_get_pg_class_filepath()
 	return xstrdup(buffer);
 }
 
-
-/*
- * Assuming the file pointer is positioned at the beginning of a page, this
- * returns a pointer to a populated PageHeaderData structure.
- */
-PageHeaderData *
-pg_read_page_header(FILE *fp)
-{
-}
 
 /*
  * Assumes the file pointer's cursor is one PageHeaderData deep, we'll read
@@ -104,24 +94,83 @@ pg_read_page(FILE *fp)
 	return p;
 }
 
-void
-pg_do_stuff()
+
+/*
+ * Converts the absolute file path into a filenode OID. The best case scenario
+ * is that the path ends with one of the following formats:
+ *
+ *     /base/[0-9]+/[0-9]+
+ *     /base/[0-9]+/[0-9]+.[0-9]+
+ *     /global/[0-9]+
+ *     /global/[0-9]+.[0-9]+
+ *
+ * Return InvalidOid if no OID was found.
+ *
+ * This function assumes the path to your database does not contain /base/ or
+ * /global/. If it does, you'll need to fix it ;)
+ */
+Oid
+pg_get_filenode_from_filepath(char *filepath, bool *shared)
 {
-	FILE *fp;
+	int i;
+	char *c, *oid;
+
+	/* Is this a shared (global) file? */
+	c = strstr(filepath, "/global/");
+	if (c != NULL) {
+		c = strchr(c + 1, '/') + 1;
+		*shared = true;
+		goto parse_filenode;
+	}
+
+	/* It this a database? */
+	c = strstr(filepath, "/base/");
+	if (c != NULL) {
+		c = strchr(c + 1, '/') + 1;
+		*shared = false;
+		goto parse_database_oid;
+	}
+
+	/* If we are getting here, we're not a DB file. */
+	return InvalidOid;
+
+parse_database_oid:
+	/* Skip the database (TODO: don't ignore the fact that we might be
+	 * looking at multiple databases and we need to look at multiple
+	 * relmappers and multiple pg_class tables... */
+	c = strchr(c, '/');
+	if (c == NULL)
+		return InvalidOid;
+	c++;
+
+parse_filenode:
+	/* Skip the part chunk at the end of the OID, TODO: use that for the
+	 * progress management... later. */
+	oid = c;
+	c = strchr(oid, '.');
+	if (c != NULL)
+		*c = '\0';
+
+	/* Whatever's in oid at this point, has got to be an int, if the
+	 * conversion fail, this is not the droid we're looking for. */
+	i = xatoi_or_zero(oid);
+	if (i == 0)
+		return InvalidOid;
+
+	return (Oid)i;
+}
+
+
+char *
+pg_get_relname_from_page(Page *p, Oid filenode, Oid oid)
+{
 	int i, count;
-	char *pg_class_filepath;
-	char *d;
-	Page *p;
 	PageHeaderData *ph;
 	HeapTupleHeaderData *hthd;
-	ItemIdData *pd_linp;
 	FormData_pg_class *ci;
+	ItemIdData *pd_linp;
+	Oid id;
 
-	pg_class_filepath = pg_get_pg_class_filepath();
-
-	fp = fopen(pg_class_filepath, "rb");
-
-	p = pg_read_page(fp);
 	ph = (PageHeaderData *)p;
 	count = (ph->pd_lower - SizeOfPageHeaderData) / sizeof(ItemIdData);
 	debug("item count: %d\n", count);
@@ -141,39 +190,93 @@ pg_do_stuff()
 		debug("hthd[%d]->t_hoff=%04X\n", i, hthd->t_hoff);
 
 		ci = (FormData_pg_class *)((void *)hthd + hthd->t_hoff);
+
+		/* If this tuple has an OID, that's the OID of our table. */
+		if (hthd->t_infomask & HEAP_HASOID)
+			id = *((Oid *)((void *)ci - sizeof(Oid)));
+		else
+			id = 0;
+
+		debug("id=%d\n", id);
+
+		ci = (FormData_pg_class *)((void *)hthd + hthd->t_hoff);
 		debug("ci[%d]->relname->data=%s\n", i, NameStr(ci->relname));
-
+		debug("ci[%d]->relfilenode=%d\n", i, ci->relfilenode);
 		debug("\n");
+
+		if (oid != InvalidOid)
+			if (id == oid)
+				return xstrdup(NameStr(ci->relname));
+
+		if (filenode != InvalidOid)
+			if (ci->relfilenode == filenode)
+				return xstrdup(NameStr(ci->relname));
 	}
 
-
-#if 0
-	/* Load the array of ItemIdData */
-	iids = xmalloc(p->pd_lower - SizeOfPageHeaderData);
-	s = fread(iids, sizeof(ItemIdData), num_items, fp);
-	if (s != num_items)
-		errx(1, "unable to read item id data");
-
-	/* Position the cursor at the beginning of the tuples and start to read
-	 * the item id data from the back, since they are reversed. */
-	if (fseek(fp, p->pd_upper, SEEK_SET) == -1)
-		err(1, "fseek()");
-
-	debug("sizeof pg_class stuff %d\n", sizeof(FormData_pg_class));
-
-	return;
-
-	for (i = num_items - 1; i >= 0; i--) {
-		iid = &iids[i];
-		if (iid->lp_len == 0)
-			continue;
-		ci = xmalloc(iid->lp_len);
-		s = fread(tuple, iid->lp_len, 1, fp);
-		if (s != 1)
-			errx(1, "fread(item)");
-	}
-#endif
-
-	fclose(fp);
+	return NULL;
 }
 
+
+/*
+ * Find a relname based either on filenode or oid. This is not super pretty,
+ * but until refactored, whichever one is not InvalidOid is the one used for
+ * filtering.
+ */
+char *
+pg_get_relname(Oid filenode, Oid oid)
+{
+	FILE *fp;
+	char *pg_class_filepath, *relname;
+	Page *p;
+
+	pg_class_filepath = pg_get_pg_class_filepath();
+
+	fp = fopen(pg_class_filepath, "rb");
+	while (!feof(fp)) {
+		p = pg_read_page(fp);
+		relname = pg_get_relname_from_page(p, filenode, oid);
+		if (relname != NULL)
+			break;
+	}
+	fclose(fp);
+
+	return relname;
+}
+
+
+/*
+ * Take any absolute file path and return a relname (possibly a table name).
+ * Return NULL if we can't find anything relevant.
+ */
+char *
+pg_get_relname_from_filepath(char *filepath)
+{
+	Oid filenode, mapped_oid;
+	char *relname = NULL;
+	bool shared = false;
+
+	filenode = pg_get_filenode_from_filepath(filepath, &shared);
+	debug("pg_get_relname_from_filepath(%s) -> %u\n", filepath, filenode);
+
+	if (filenode == InvalidOid)
+		return NULL;
+
+	/*
+	 * Attempt to get the relname from the relmapper, in case this filepath
+	 * belongs to a "special" object that does not have a filenode in the
+	 * pg_class table.
+	 */
+	load_relmap_file(shared);
+	mapped_oid = FilenodeToRelationMapOid(filenode, shared);
+	if (mapped_oid != InvalidOid) {
+		debug("GOT MAPPED %d!\n", mapped_oid);
+		relname = pg_get_relname(InvalidOid, mapped_oid);
+		debug("DEMAPPED %s\n", relname);
+		if (relname != NULL)
+			return relname;
+	}
+
+	relname = pg_get_relname(filenode, InvalidOid);
+
+	return relname;
+}

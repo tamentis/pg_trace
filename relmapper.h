@@ -16,3 +16,4 @@
 
 void		 load_relmap_file(bool);
 Oid		 RelationMapOidToFilenode(Oid, bool);
+Oid		 FilenodeToRelationMapOid(Oid, bool);

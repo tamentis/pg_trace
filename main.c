@@ -34,12 +34,23 @@ process_fd_func(char *func_name, int argc, char **argv, char *result)
 {
 	int fd;
 	fd_desc *desc;
+	char *relname;
 
 	fd = xatoi(argv[0]);
 
 	desc = fd_cache_get(fd);
 
-	printf("%s fd=%d %s\n", func_name, fd, desc->name);
+	// TODO - filter on descs that look like databases
+	// TODO - if not found, refrsh the fd_cache
+
+	if (desc == NULL) {
+		debug("process_fd_func() no filename for fd %d\n", fd);
+		return;
+	}
+
+	relname = pg_get_relname_from_filepath(desc->name);
+
+	printf("%s fd=%d -> %s -> %s\n", func_name, fd, desc->name, relname);
 }
 
 
@@ -74,18 +85,14 @@ main(int argc, const char **argv)
 	// TODO - getopt
 	if (argc != 2) errx(1, "usage?");
 
-	debug_flag = 1;
+	debug_flag = 0;
 
-	/*
 	pid = xatoi((char*)argv[1]);
 
 	lsof_refresh_cache(pid);
 
 	pipe = strace_open(pid);
 	strace_read_lines(pipe, process_func);
-	*/
-
-	pg_do_stuff();
 
 	return 0;
 }

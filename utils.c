@@ -47,6 +47,27 @@ xatoi(char *c)
 
 
 /*
+ * Converts a char to int, returns 0 if anything goes wrong.
+ */
+int
+xatoi_or_zero(char *c)
+{
+	int i;
+	char *endptr;
+
+	i = strtol(c, &endptr, 10);
+
+	if (*endptr != '\0')
+		return 0;
+
+	if (i == (int)LONG_MAX || i == (int)LONG_MIN)
+		return 0;
+
+	return i;
+}
+
+
+/*
  * Converts an int to char*.
  */
 char *

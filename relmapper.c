@@ -45,6 +45,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <err.h>
 
 #include "access/xact.h"
 #include "catalog/catalog.h"
@@ -60,7 +61,9 @@
 
 
 // FIXME - should be passed
-#define DatabasePath "/mnt/var/lib/postgresql/9.1/main/base/16386"
+#define ClusterPath "/mnt/var/lib/postgresql/9.1/main"
+#define DatabasePath ClusterPath "/base/16386"
+#define GlobalPath ClusterPath "/global"
 
 
 
@@ -121,8 +124,6 @@ static RelMapFile local_map;
  */
 static RelMapFile active_shared_updates;
 static RelMapFile active_local_updates;
-static RelMapFile pending_shared_updates;
-static RelMapFile pending_local_updates;
 
 
 void load_relmap_file(bool shared);
@@ -200,8 +201,8 @@ load_relmap_file(bool shared)
 
 	if (shared)
 	{
-		snprintf(mapfilename, sizeof(mapfilename), "global/%s",
-				 RELMAPPER_FILENAME);
+		snprintf(mapfilename, sizeof(mapfilename), "%s/%s",
+				 GlobalPath, RELMAPPER_FILENAME);
 		map = &shared_map;
 	}
 	else
@@ -245,6 +246,57 @@ load_relmap_file(bool shared)
 	if (!EQ_CRC32(crc, map->crc))
 		err(1, "relation mapping file \"%s\" contains incorrect checksum",
 				  mapfilename);
+}
+
+
+/*
+ * FilenodeToRelationMapOid
+ *
+ * This is the inverse of RelationMapOidToFilenode. This is not imported from
+ * Postgresql.
+ *
+ * Returns InvalidOid if the OID is not known (which should never happen,
+ * but the caller is in a better position to report a meaningful error).
+ */
+Oid
+FilenodeToRelationMapOid(Oid filenode, bool shared)
+{
+	const RelMapFile *map;
+	int32		i;
+
+	/* If there are active updates, believe those over the main maps */
+	if (shared)
+	{
+		map = &active_shared_updates;
+		for (i = 0; i < map->num_mappings; i++)
+		{
+			if (filenode == map->mappings[i].mapfilenode)
+				return map->mappings[i].mapoid;
+		}
+		map = &shared_map;
+		for (i = 0; i < map->num_mappings; i++)
+		{
+			if (filenode == map->mappings[i].mapfilenode)
+				return map->mappings[i].mapoid;
+		}
+	}
+	else
+	{
+		map = &active_local_updates;
+		for (i = 0; i < map->num_mappings; i++)
+		{
+			if (filenode == map->mappings[i].mapfilenode)
+				return map->mappings[i].mapoid;
+		}
+		map = &local_map;
+		for (i = 0; i < map->num_mappings; i++)
+		{
+			if (filenode == map->mappings[i].mapfilenode)
+				return map->mappings[i].mapoid;
+		}
+	}
+
+	return InvalidOid;
 }
 
 
