@@ -1,0 +1,75 @@
+\"
+.\" Copyright (c) 2013 Bertrand Janin <b@janin.com>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd $Mdocdate: February 24 2013 $
+.Dt pg_trace 1
+.Os
+.Sh NAME
+.Nm pg_trace
+.Nd trace postgres processes
+.Sh SYNOPSIS
+.Nm pg_trace
+.Bk -words
+.Op Fl hd
+.Op Fl p Ar pid
+.Ek
+.Sh DESCRIPTION
+.Nm
+is a wrapper around strace-like tools and lsof that prints the tables
+being accessed by a particular PostgreSQL process (e.g. backend).
+
+Say you have a lengthy query that scans over TBs of data and you have one
+of the sales guys breathing down your neck to get its result. The query has
+already been running for an hour, you have no idea how long it will take,
+how far the backend has gotten.
+.Nm
+will translate the file descriptors found in strace/ktrace/struss and resolve
+them into table, index, xlog names so you can guesstimate how far the process
+is, assuming there is a sequential factor in this query (partitioned tables?
+table scan? etc.) lets you use your own editor to manage your passwords,
+categorize them and delete them. I wouldn't use anything but my favorite editor
+to manage a list, would you?
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl p Ar pid
+Define what process to spy on.
+.It Fl d
+Debug flag, print on screen everything that's going on in the backend.
+.It Fl h
+Print usage information.
+.El
+.Sh SEE ALSO
+.Xr strace 1 ,
+.Xr lsof 8
+.Sh BUGS
+None so far.
+.Sh AUTHORS
+pg_trace was written by Bertrand Janin <b@janin.com> and is distributed under
+an ISC license (BSD compatible, OSI compatible).
+.Pp
+A bunch of utility functions are borrowed from OpenBSD and OpenSSH, both
+under ISC and BSD licenses, with copyrights from the following authors:
+.Pp
+    Copyright (c) 2004 Ted Unangst and Todd Miller
+    Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
+    Copyright (c) 2000 Markus Friedl.  All rights reserved.
+    Copyright (c) 2005,2006 Damien Miller.  All rights reserved.
+.Pp
+The array and xmalloc libraries are taken from tmux, with the following
+copyright notices:
+.Pp
+    Copyright (c) 2004 Nicholas Marriott <nicm@users.sourceforge.net>
+    Copyright (c) 2006 Nicholas Marriott <nicm@users.sourceforge.net>

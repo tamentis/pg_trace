@@ -34,7 +34,7 @@ process_fd_func(char *func_name, int argc, char **argv, char *result)
 {
 	int fd;
 	fd_desc *desc;
-	char *relname;
+	char *relname, *detail;
 
 	fd = xatoi(argv[0]);
 
@@ -44,13 +44,19 @@ process_fd_func(char *func_name, int argc, char **argv, char *result)
 	// TODO - if not found, refrsh the fd_cache
 
 	if (desc == NULL) {
-		debug("process_fd_func() no filename for fd %d\n", fd);
+		// XXX leak
+		detail = xstrdup("unknown file descriptor");
 		return;
 	}
 
 	relname = pg_get_relname_from_filepath(desc->name);
 
-	printf("%s fd=%d -> %s -> %s\n", func_name, fd, desc->name, relname);
+	if (relname == NULL)
+		detail = desc->name;
+	else
+		detail = relname;
+
+	printf("%s %s\n", func_name, detail);
 }
 
 
@@ -71,23 +77,42 @@ process_func(char *func_name, int argc, char **argv, char *result)
 	} else if (strcmp(func_name, "lseek") == 0) {
 		process_fd_func(func_name, argc, argv, result);
 	} else {
-		printf("unknown func: %s, argc: %d\n", func_name, argc);
+		debug("unknown func: %s, argc: %d\n", func_name, argc);
 	}
 }
 
 
-int
-main(int argc, const char **argv)
+void
+usage()
 {
-	int pipe;
-	pid_t pid;
+	fprintf(stderr, "usage: pg_trace [-h] [-d] [-p pid]\n");
+	exit(1);
+}
 
-	// TODO - getopt
-	if (argc != 2) errx(1, "usage?");
 
-	debug_flag = 0;
+int
+main(int argc, char **argv)
+{
+	int pipe, opt;
+	extern char *optarg;
+	pid_t pid = 0;
 
-	pid = xatoi((char*)argv[1]);
+	while ((opt = getopt(argc, argv, "hp:d")) != -1) {
+		switch (opt) {
+		case 'p':
+			pid = xatoi(optarg);
+			break;
+		case 'd':
+			debug_flag = 1;
+			break;
+		case 'h':
+		default:
+			usage();
+		}
+	}
+
+	if (pid == 0)
+		usage();
 
 	lsof_refresh_cache(pid);
 
