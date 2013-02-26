@@ -26,6 +26,37 @@
 int debug_flag = 0;
 
 
+#define MAX_HUMAN_FD_LENGTH	256
+
+
+/*
+ * Get human-readable file descriptor, if possible.
+ */
+char *
+get_human_fd(int fd)
+{
+	fd_desc *desc;
+	char buffer[MAX_HUMAN_FD_LENGTH];
+	char *relname;
+
+	desc = lsof_get_fd_desc(fd);
+
+	if (desc == NULL) {
+		snprintf(buffer, sizeof(buffer), "fd=%u", fd);
+	} else {
+		relname = pg_get_relname_from_filepath(desc->name);
+
+		if (relname == NULL) {
+			snprintf(buffer, sizeof(buffer), "filenode=%s", desc->name);
+		} else {
+			snprintf(buffer, sizeof(buffer), "relname=%s", relname);
+		}
+	}
+
+	return xstrdup(buffer);
+}
+
+
 /*
  * Take any function with the file descriptor as first argument.
  */
@@ -33,30 +64,12 @@ void
 process_fd_func(char *func_name, int argc, char **argv, char *result)
 {
 	int fd;
-	fd_desc *desc;
-	char *relname, *detail;
+	char *human_fd;
 
 	fd = xatoi(argv[0]);
 
-	desc = fd_cache_get(fd);
-
-	// TODO - filter on descs that look like databases
-	// TODO - if not found, refrsh the fd_cache
-
-	if (desc == NULL) {
-		// XXX leak
-		detail = xstrdup("unknown file descriptor");
-		return;
-	}
-
-	relname = pg_get_relname_from_filepath(desc->name);
-
-	if (relname == NULL)
-		detail = desc->name;
-	else
-		detail = relname;
-
-	printf("%s %s\n", func_name, detail);
+	human_fd = get_human_fd(fd);
+	printf("%s(%s)\n", func_name, human_fd);
 }
 
 
@@ -70,10 +83,10 @@ process_func(char *func_name, int argc, char **argv, char *result)
 		process_fd_func(func_name, argc, argv, result);
 	} else if (strcmp(func_name, "write") == 0) {
 		process_fd_func(func_name, argc, argv, result);
-	} else if (strcmp(func_name, "recvfrom") == 0) {
-		process_fd_func(func_name, argc, argv, result);
-	} else if (strcmp(func_name, "sendto") == 0) {
-		process_fd_func(func_name, argc, argv, result);
+	// } else if (strcmp(func_name, "recvfrom") == 0) {
+	// 	process_fd_func(func_name, argc, argv, result);
+	// } else if (strcmp(func_name, "sendto") == 0) {
+	// 	process_fd_func(func_name, argc, argv, result);
 	} else if (strcmp(func_name, "lseek") == 0) {
 		process_fd_func(func_name, argc, argv, result);
 	} else {

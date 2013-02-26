@@ -37,6 +37,9 @@
 
 extern int debug_flag;
 
+char *current_cluster_path = NULL;
+Oid current_database_oid = InvalidOid;
+
 
 /*
  * Returns the filesystem path of the pg_class table.
@@ -46,6 +49,10 @@ pg_get_pg_class_filepath()
 {
 	int filenode;
 	char buffer[MAXPGPATH];
+
+	/* We haven't found any cluster or database yet, shouldn't be here. */
+	if (current_cluster_path == NULL || current_database_oid == InvalidOid)
+		return NULL;
 
 	/*
 	 * This gives us access to all the mapped file nodes, they are not
@@ -77,14 +84,7 @@ pg_read_page(FILE *fp)
 	if (fread(ph, SizeOfPageHeaderData, 1, fp) != 1)
 		errx(1, "unable to read page header");
 
-	debug("SizeOfPageHeaderData=%lu\n", SizeOfPageHeaderData);
-	debug("ph->pd_lower=0x%04X\n", ph->pd_lower);
-	debug("ph->pd_upper=0x%04X\n", ph->pd_upper);
-	debug("ph->pd_page_size=%lu\n", PageGetPageSize(ph));
-	debug("ph->pd_page_version=%d\n", PageGetPageLayoutVersion(ph));
-	debug("ph->pd_special=0x%04X\n", ph->pd_special);
-	debug("ph->pd_prune_xid=0x%08X\n", ph->pd_prune_xid);
-
+	/* Fill the rest of the data */
 	p = xrealloc(ph, 1, PageGetPageSize(ph));
 	l = fread((void *)p + SizeOfPageHeaderData,
 			PageGetPageSize(p) - SizeOfPageHeaderData, 1, fp);
@@ -110,10 +110,16 @@ pg_read_page(FILE *fp)
  * /global/. If it does, you'll need to fix it ;)
  */
 Oid
-pg_get_filenode_from_filepath(char *filepath, bool *shared)
+pg_get_filenode_from_filepath(char *org_filepath, bool *shared)
 {
 	int i;
-	char *c, *oid;
+	char *c, *oid, *filepath;
+	Oid db_oid = InvalidOid;
+
+	/* Don't touch the original filepath, we still use it. */
+	filepath = xstrdup(org_filepath);
+
+	debug("pg_get_filenode_from_filepath(%s, %u)\n", filepath, *shared);
 
 	/* Is this a shared (global) file? */
 	c = strstr(filepath, "/global/");
@@ -135,13 +141,18 @@ pg_get_filenode_from_filepath(char *filepath, bool *shared)
 	return InvalidOid;
 
 parse_database_oid:
-	/* Skip the database (TODO: don't ignore the fact that we might be
-	 * looking at multiple databases and we need to look at multiple
-	 * relmappers and multiple pg_class tables... */
+	/* Keep reference to the database Oid. We should always be looking at
+	 * the same database, but just in case. */
+	oid = c;
 	c = strchr(c, '/');
 	if (c == NULL)
 		return InvalidOid;
+	*c = '\0';
+	db_oid = xatoi_or_zero(oid);
 	c++;
+
+	/* Reduce the string before /base/db oid, obtain the cluster path */
+	*(oid - 6) = '\0';
 
 parse_filenode:
 	/* Skip the part chunk at the end of the OID, TODO: use that for the
@@ -157,6 +168,21 @@ parse_filenode:
 	if (i == 0)
 		return InvalidOid;
 
+	/* Now that we know the path is valid, save the current cluster path
+	 * and current database oid. */
+	if (current_database_oid == InvalidOid && db_oid != InvalidOid) {
+		current_database_oid = db_oid;
+	} else if (current_database_oid != db_oid) {
+		errx(1, "error: one backend shouldn't switch database");
+	}
+
+	if (current_cluster_path == NULL && db_oid != InvalidOid) {
+		*(oid - 1) = '\0';
+		current_cluster_path = xstrdup(filepath);
+	}
+
+	xfree(filepath);
+
 	return (Oid)i;
 }
 
@@ -171,9 +197,10 @@ pg_get_relname_from_page(Page *p, Oid filenode, Oid oid)
 	ItemIdData *pd_linp;
 	Oid id;
 
+	debug("pg_get_relname_from_page(%u, %u)\n", filenode, oid);
+
 	ph = (PageHeaderData *)p;
 	count = (ph->pd_lower - SizeOfPageHeaderData) / sizeof(ItemIdData);
-	debug("item count: %d\n", count);
 
 	for (i = 0; i < count; i++) {
 		pd_linp = PageGetItemId(p, i + 1);
@@ -182,12 +209,7 @@ pg_get_relname_from_page(Page *p, Oid filenode, Oid oid)
 		if (pd_linp->lp_flags != LP_NORMAL)
 			continue;
 
-		debug("pd_linp[%d]->lp_off=0x%04X\n", i, pd_linp->lp_off);
-		debug("pd_linp[%d]->lp_flags=0x%02X\n", i, pd_linp->lp_flags);
-		debug("pd_linp[%d]->lp_len=0x%04X\n", i, pd_linp->lp_len);
-
 		hthd = (HeapTupleHeaderData *)PageGetItem(p, pd_linp);
-		debug("hthd[%d]->t_hoff=%04X\n", i, hthd->t_hoff);
 
 		ci = (FormData_pg_class *)((void *)hthd + hthd->t_hoff);
 
@@ -197,12 +219,7 @@ pg_get_relname_from_page(Page *p, Oid filenode, Oid oid)
 		else
 			id = 0;
 
-		debug("id=%d\n", id);
-
 		ci = (FormData_pg_class *)((void *)hthd + hthd->t_hoff);
-		debug("ci[%d]->relname->data=%s\n", i, NameStr(ci->relname));
-		debug("ci[%d]->relfilenode=%d\n", i, ci->relfilenode);
-		debug("\n");
 
 		if (oid != InvalidOid)
 			if (id == oid)
@@ -230,6 +247,8 @@ pg_get_relname(Oid filenode, Oid oid)
 	Page *p;
 
 	pg_class_filepath = pg_get_pg_class_filepath();
+	if (pg_class_filepath == NULL)
+		return NULL;
 
 	fp = fopen(pg_class_filepath, "rb");
 	while (!feof(fp)) {
@@ -269,9 +288,7 @@ pg_get_relname_from_filepath(char *filepath)
 	load_relmap_file(shared);
 	mapped_oid = FilenodeToRelationMapOid(filenode, shared);
 	if (mapped_oid != InvalidOid) {
-		debug("GOT MAPPED %d!\n", mapped_oid);
 		relname = pg_get_relname(InvalidOid, mapped_oid);
-		debug("DEMAPPED %s\n", relname);
 		if (relname != NULL)
 			return relname;
 	}

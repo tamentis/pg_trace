@@ -52,6 +52,7 @@ void		 strace_read_lines(int, void (*func)(char *, int, char **, char*));
 
 /* lsof.c */
 void		 lsof_refresh_cache(pid_t);
+fd_desc		*lsof_get_fd_desc(int);
 
 /* fdcache.c */
 void		 fd_cache_clear();

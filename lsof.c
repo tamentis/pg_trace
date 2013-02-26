@@ -23,6 +23,7 @@
 
 
 extern int debug_flag;
+pid_t latest_pid = 0;
 
 
 /*
@@ -98,11 +99,8 @@ lsof_read_lines(int fd)
 		 * descriptors. */
 		if (type == 'a') {
 			if (c[0] == ' ') {
-				debug("lsof_read_lines() skipping "
-				      "uninterresting descriptor\n");
 				current = NULL;
 			} else {
-				debug("lsof_read_lines() found record\n");
 				current = fd_cache_next();
 			}
 			continue;
@@ -162,5 +160,25 @@ lsof_refresh_cache(pid_t pid)
 
 	pipe = lsof_open(pid);
 	lsof_read_lines(pipe);
+
+	/* Keep that for later refreshes */
+	latest_pid = pid;
 }
 
+
+/*
+ * Wrapper around the fdcache, refresh the cache in case of miss.
+ */
+fd_desc *
+lsof_get_fd_desc(int fd)
+{
+	fd_desc *desc;
+
+	desc = fd_cache_get(fd);
+	if (desc != NULL)
+		return desc;
+
+	lsof_refresh_cache(latest_pid);
+
+	return fd_cache_get(fd);
+}

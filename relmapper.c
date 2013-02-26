@@ -60,11 +60,8 @@
 #include "pg_crc32_table.h"
 
 
-// FIXME - should be passed
-#define ClusterPath "/mnt/var/lib/postgresql/9.1/main"
-#define DatabasePath ClusterPath "/base/16386"
-#define GlobalPath ClusterPath "/global"
-
+extern char *current_cluster_path;
+extern Oid current_database_oid;
 
 
 /*
@@ -188,8 +185,6 @@ RelationMapOidToFilenode(Oid relationId, bool shared)
  *
  * Because the map file is essential for access to core system catalogs,
  * failure to read it is a fatal error.
- *
- * Note that the local case requires DatabasePath to be set up.
  */
 void
 load_relmap_file(bool shared)
@@ -201,14 +196,15 @@ load_relmap_file(bool shared)
 
 	if (shared)
 	{
-		snprintf(mapfilename, sizeof(mapfilename), "%s/%s",
-				 GlobalPath, RELMAPPER_FILENAME);
+		snprintf(mapfilename, sizeof(mapfilename), "%s/global/%s",
+				 current_cluster_path, RELMAPPER_FILENAME);
 		map = &shared_map;
 	}
 	else
 	{
-		snprintf(mapfilename, sizeof(mapfilename), "%s/%s",
-				 DatabasePath, RELMAPPER_FILENAME);
+		snprintf(mapfilename, sizeof(mapfilename), "%s/base/%u/%s",
+				 current_cluster_path, current_database_oid,
+				 RELMAPPER_FILENAME);
 		map = &local_map;
 	}
 
