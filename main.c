@@ -63,13 +63,14 @@ get_human_fd(int fd)
 void
 process_fd_func(char *func_name, int argc, char **argv, char *result)
 {
-	int fd;
+	int fd, size;
 	char *human_fd;
 
 	fd = xatoi(argv[0]);
+	size = xatoi(argv[2]);
 
 	human_fd = get_human_fd(fd);
-	printf("%s(%s)\n", func_name, human_fd);
+	printf("%s(%s, %u)\n", func_name, human_fd, size);
 }
 
 

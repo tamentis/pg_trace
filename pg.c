@@ -31,10 +31,6 @@
 #include "relmapper.h"
 
 
-// FIXME: nope hardc0de
-#define DatabasePath "/mnt/var/lib/postgresql/9.1/main/base/16386"
-
-
 extern int debug_flag;
 
 char *current_cluster_path = NULL;
@@ -62,7 +58,8 @@ pg_get_pg_class_filepath()
 	load_relmap_file(0);
 
 	filenode = RelationMapOidToFilenode(RelationRelationId, 0);
-	snprintf(buffer, MAXPGPATH, "%s/%d", DatabasePath, filenode);
+	snprintf(buffer, MAXPGPATH, "%s/base/%u/%d", current_cluster_path,
+			current_database_oid, filenode);
 
 	return xstrdup(buffer);
 }
@@ -156,7 +153,7 @@ parse_database_oid:
 
 parse_filenode:
 	/* Skip the part chunk at the end of the OID, TODO: use that for the
-	 * progress management... later. */
+	 * progress management... later (each file is 1GB). */
 	oid = c;
 	c = strchr(oid, '.');
 	if (c != NULL)
@@ -275,7 +272,7 @@ pg_get_relname_from_filepath(char *filepath)
 	bool shared = false;
 
 	filenode = pg_get_filenode_from_filepath(filepath, &shared);
-	debug("pg_get_relname_from_filepath(%s) -> %u\n", filepath, filenode);
+	debug("pg_get_relname_from_filepath(%s) -> filenode_oid=%u\n", filepath, filenode);
 
 	if (filenode == InvalidOid)
 		return NULL;

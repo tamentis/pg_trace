@@ -1,3 +1,4 @@
 *.o
 pg_trace
 Makefile
+random_reads

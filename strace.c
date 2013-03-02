@@ -64,6 +64,26 @@ strace_open(pid_t pid)
 
 
 /*
+ * If the first character of s is a double quote, return a pointer one byte
+ * further and pull the final NUL byte closer.
+ *
+ * FIXME: this can be more robust (escape characters?)
+ */
+char *
+_extract_argument(char *start, char *end)
+{
+	if (*start == '"') {
+		start++;
+		end--;
+	}
+
+	*end = '\0';
+
+	return start;
+}
+
+
+/*
  * Parses out the function name and its argument, calling the provided function
  * with the broken down line elements.
  *
@@ -92,8 +112,7 @@ strace_process_line(char *line, void (*func_handler)(char *, int, char **, char*
 
 	/* Extract the arguments (anything before a comma) */
 	while ((a = strchr(c, ',')) != NULL) {
-		*a = '\0';
-		argv[argc] = c;
+		argv[argc] = _extract_argument(c, a);
 		c = a + 1;
 		argc++;
 	}
@@ -103,8 +122,7 @@ strace_process_line(char *line, void (*func_handler)(char *, int, char **, char*
 	if (a == NULL) {
 		errx(1, "process_line(): wrong last param syntax");
 	} else if (a != c) {
-		*a = '\0';
-		argv[argc] = c;
+		argv[argc] = _extract_argument(c, a);
 		argc++;
 	}
 	c = a + 1;
