@@ -74,6 +74,34 @@ process_fd_func(char *func_name, int argc, char **argv, char *result)
 
 
 /*
+ * Handle an 'open' call, update the fdcache accordingly.
+ */
+void
+process_func_open(int argc, char **argv, char *result)
+{
+	int fd;
+
+	fd = xatoi(result);
+
+	fd_cache_add(fd, argv[0]);
+}
+
+
+/*
+ * Handle a 'close' call, delete this fd from fdcache.
+ */
+void
+process_func_close(int argc, char **argv, char *result)
+{
+	int fd;
+
+	fd = xatoi(argv[0]);
+
+	fd_cache_delete(fd);
+}
+
+
+/*
  * Check if we have a handler for this function and run it.
  */
 void
@@ -83,6 +111,10 @@ process_func(char *func_name, int argc, char **argv, char *result)
 		process_fd_func(func_name, argc, argv, result);
 	} else if (strcmp(func_name, "write") == 0) {
 		process_fd_func(func_name, argc, argv, result);
+	} else if (strcmp(func_name, "open") == 0) {
+		process_func_open(argc, argv, result);
+	} else if (strcmp(func_name, "close") == 0) {
+		process_func_close(argc, argv, result);
 	// } else if (strcmp(func_name, "recvfrom") == 0) {
 	// 	process_fd_func(func_name, argc, argv, result);
 	// } else if (strcmp(func_name, "sendto") == 0) {

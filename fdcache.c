@@ -22,6 +22,7 @@
 
 /* How much to realloc when the cache is too tight. */
 #define FD_CACHE_GROWTH		64
+#define FD_CACHE_INVALID	-1
 
 
 extern int debug_flag;
@@ -37,6 +38,17 @@ int fd_cache_size = 0;
 
 
 /*
+ * Wipe an fd_desc item clear, avoiding public urination.
+ */
+void
+fd_desc_invalidate(fd_desc *desc)
+{
+	desc->fd = FD_CACHE_INVALID;
+	xfree(desc->name);
+}
+
+
+/*
  * Remove all the cached items if it already exists, else just create it.
  */
 void
@@ -46,9 +58,9 @@ fd_cache_clear() {
 	debug("fd_cache_clear()\n");
 
 	if (fd_cache != NULL) {
-		for (i = 0; i < fd_cache_length; i++) {
-			xfree(fd_cache[i].name);
-		}
+		for (i = 0; i < fd_cache_length; i++)
+			fd_desc_invalidate(&fd_cache[i]);
+
 		fd_cache_length = 0;
 	}
 }
@@ -85,9 +97,57 @@ fd_cache_get(int fd)
 	int i;
 
 	for (i = 0; i < fd_cache_length; i++) {
+		if (fd_cache[i].fd == FD_CACHE_INVALID)
+			continue;
 		if (fd_cache[i].fd == fd)
 			return &fd_cache[i];
 	}
 
 	return NULL;
+}
+
+
+/*
+ * Remove an element from the cache. Technically we just invalidate it. This is
+ * not used in the initial load, but only when we receive a close() from the
+ * trace program.
+ */
+void
+fd_cache_delete(int fd)
+{
+	int i;
+
+	for (i = 0; i < fd_cache_length; i++) {
+		if (fd_cache[i].fd == fd) {
+			fd_desc_invalidate(&fd_cache[i]);
+			return;
+		}
+	}
+}
+
+
+/*
+ * Add a file descriptor to the cache. This is used for incremental updates,
+ * not for the initial bulk load. It will find empty spots before.
+ */
+void
+fd_cache_add(int fd, char *path)
+{
+	int i;
+	fd_desc *current = NULL;
+
+	/* First try to replace an empty slot. */
+	for (i = 0; i < fd_cache_length; i++) {
+		if (fd_cache[i].fd == FD_CACHE_INVALID) {
+			current = &fd_cache[i];
+			break;
+		}
+	}
+
+	if (current == NULL)
+		current = fd_cache_next();
+
+	current->fd = fd;
+	current->type = FILE_TYPE_REG;
+	current->name = xstrdup(path);
 }

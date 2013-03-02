@@ -58,6 +58,8 @@ fd_desc		*lsof_get_fd_desc(int);
 void		 fd_cache_clear();
 fd_desc		*fd_cache_next();
 fd_desc		*fd_cache_get(int);
+void		 fd_cache_delete(int);
+void		 fd_cache_add(int, char *);
 
 /* utils.c */
 int		 xatoi(char *);

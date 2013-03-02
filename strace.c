@@ -64,8 +64,11 @@ strace_open(pid_t pid)
 
 
 /*
- * Drops a series of NUL bytes on the line and assign the various components to
- * the right pointers.
+ * Parses out the function name and its argument, calling the provided function
+ * with the broken down line elements.
+ *
+ * Since this function drops NUL bytes everywhere, you shouldn't use line after
+ * calling this function.
  */
 void
 strace_process_line(char *line, void (*func_handler)(char *, int, char **, char*))
@@ -75,8 +78,6 @@ strace_process_line(char *line, void (*func_handler)(char *, int, char **, char*
 	char *argv[MAX_FUNCTION_ARGUMENTS];
 	char *c, *a;
 	int argc = 0;
-
-	// printf("LINE: %s", line);
 
 	/* Extract function name. */
 	func_name = line;
@@ -97,12 +98,12 @@ strace_process_line(char *line, void (*func_handler)(char *, int, char **, char*
 		argc++;
 	}
 
-	/* Extra the final argument (anything before the last parenthesis). */
+	/* Extract the final argument. */
 	a = strchr(c, ')');
-	if (a == NULL)
+	if (a == NULL) {
 		errx(1, "process_line(): wrong last param syntax");
-	*a = '\0';
-	if (argc > 0) {
+	} else if (a != c) {
+		*a = '\0';
 		argv[argc] = c;
 		argc++;
 	}
@@ -125,6 +126,10 @@ strace_process_line(char *line, void (*func_handler)(char *, int, char **, char*
 }
 
 
+/*
+ * Read through the file descriptor, passing each parsed line to
+ * strace_process_line.
+ */
 void
 strace_read_lines(int fd, void (*func_handler)(char *, int, char **, char*))
 {

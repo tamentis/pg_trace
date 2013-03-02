@@ -2,7 +2,7 @@ BINARY=pg_trace
 OBJECTS=main.o strace.o strdelim.o utils.o xmalloc.o lsof.o fdcache.o pg.o relmapper.o
 OBJECTS+=${EXTRA_OBJECTS}
 
-all: ${BINARY}
+all: ${BINARY} random_reads
 
 ${BINARY}: ${OBJECTS}
 	${CC} ${LDFLAGS} -o ${BINARY} ${OBJECTS} ${CURSESLIB} 
@@ -20,6 +20,6 @@ mantest:
 	nroff -man pg_trace.1 | less -R
 
 clean:
-	rm -f ${BINARY} ${OBJECTS} test.o run_tests *core
+	rm -f ${BINARY} ${OBJECTS} test.o run_tests *core random_reads
 
 
