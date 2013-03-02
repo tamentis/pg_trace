@@ -7,6 +7,9 @@ all: ${BINARY}
 ${BINARY}: ${OBJECTS}
 	${CC} ${LDFLAGS} -o ${BINARY} ${OBJECTS} ${CURSESLIB} 
 
+random_reads: random_reads.c
+	${CC} random_reads.c -o random_reads
+
 install: ${BINARY}
 	install -d -m 755 ${PREFIX}/bin
 	install -m 755 ${BINARY} ${PREFIX}/bin
