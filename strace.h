@@ -24,3 +24,4 @@
 
 int		 strace_open(pid_t);
 void		 strace_read_lines(int, void (*func)(char *, int, char **, char*));
+void		 strace_resolve_path(void);

@@ -1,7 +1,3 @@
- - generate an oid, filenode, name table.
- - find out why 'pg_get_relname_from_page' it taking 82% of the CPU (because
-   it's loading it all the time...).
- - check for strace and lsof.
  - check for postgres version.
  - run on openbsd, create a port.
  - create the debian package crap.

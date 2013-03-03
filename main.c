@@ -166,7 +166,10 @@ main(int argc, char **argv)
 	if (pid == 0)
 		usage();
 
+	strace_resolve_path();
+	lsof_resolve_path();
 	lsof_refresh_cache(pid);
+
 
 	signal(SIGINT, (sighandler_t)sigint_handler);
 

@@ -24,9 +24,11 @@
 #include "utils.h"
 #include "xmalloc.h"
 #include "pg.h"
+#include "which.h"
 
 
 pid_t latest_pid = 0;
+char *lsof_path = NULL;
 
 
 /*
@@ -60,7 +62,7 @@ lsof_open(pid_t pid)
 			err(1, "lsof_open:dup2(pipe_w, stdout)");
 		if (close(pipe_r) == -1)
 			err(1, "lsof_open:close(pipe_r)");
-		if (execl("/usr/bin/lsof", "lsof",
+		if (execl(lsof_path, "lsof",
 					"-Faftn",	/* parser-friendly see
 							   lsof(8) */
 					"-p", cpid,	/* target pid */
@@ -188,7 +190,6 @@ lsof_get_fd_desc(int fd)
 }
 
 
-
 /*
  * Get human-readable file descriptor, if possible.
  */
@@ -216,3 +217,12 @@ lsof_get_human_fd(int fd)
 	return xstrdup(buffer);
 }
 
+
+/*
+ * Resolve the lsof path, throwing an error if it is not found.
+ */
+void
+lsof_resolve_path(void)
+{
+	lsof_path = which("lsof");
+}

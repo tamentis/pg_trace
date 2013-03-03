@@ -21,6 +21,10 @@
 
 #include "strace.h"
 #include "utils.h"
+#include "which.h"
+
+
+char *strace_path = NULL;
 
 
 int
@@ -46,7 +50,7 @@ strace_open(pid_t pid)
 			err(1, "strace_open:dup2(pipe_w, stderr)");
 		if (close(pipe_r) == -1)
 			err(1, "strace_open:close(pipe_r)");
-		if (execl("/usr/bin/strace", "strace",
+		if (execl(strace_path, "strace",
 					"-q",		/* quiet */
 					"-s", "8",	/* no need for data */
 					"-p", cpid,	/* pid to spy on */
@@ -224,3 +228,12 @@ strace_read_lines(int fd, void (*func_handler)(char *, int, char **, char*))
 	}
 }
 
+
+/*
+ * Resolve the strace path, throwing an error if it is not found.
+ */
+void
+strace_resolve_path(void)
+{
+	strace_path = which("strace");
+}

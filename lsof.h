@@ -21,3 +21,4 @@
 void		 lsof_refresh_cache(pid_t);
 fd_desc		*lsof_get_fd_desc(int);
 char		*lsof_get_human_fd(int);
+void		 lsof_resolve_path(void);
