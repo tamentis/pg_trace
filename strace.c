@@ -135,6 +135,7 @@ _extract_argument(char **startp)
 				*end = '\0';
 				break;
 			}
+			end++;
 		}
 		valueend = end + 1;
 	} else if (*start == '{') {

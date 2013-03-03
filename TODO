@@ -1,0 +1,13 @@
+ - find out why 'pg_get_relname_from_page' it taking 82% of the CPU.
+ - install a signal handler.
+ - check for strace and lsof.
+ - check for postgres version.
+ - run on openbsd, create a port.
+ - create the debian package crap.
+ - hunt leaks, plenty of them.
+ - don't scan everything all the time, it gets old.
+ - interpret the content of read/writes?
+ - guess the position in a table based on chunks (.1, .2 etc.)
+ - capture in hex, and decode if needed (read/write) instead of playing the escape game.
+ - what happens if pg writes pg_filenode while we read it.
+ - don't die if you're not root.
