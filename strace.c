@@ -86,6 +86,26 @@ _skip_func_name(char *s)
 
 
 /*
+ * Returns 1 if the number of backslashes before the double-quote is odd.
+ */
+int
+_is_escaped(char *s)
+{
+	int count = 0;
+
+	while (*(s - 1) == '\\') {
+		count++;
+		s--;
+	}
+
+	if ((count & 1) == 1)
+		return 1;
+
+	return 0;
+}
+
+
+/*
  * Find the next comma or parenthesis, sets it as NUL byte to delimit the
  * possible previous argument.
  *
@@ -111,7 +131,7 @@ _extract_argument(char **startp)
 		end = start;
 		for (;;) {
 			end = strchr(end, '"');
-			if (*(end - 1) != '\\') {
+			if (!_is_escaped(end)) {
 				*end = '\0';
 				break;
 			}

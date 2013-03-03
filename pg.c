@@ -251,6 +251,7 @@ pg_get_relname(Oid filenode, Oid oid)
 	while (!feof(fp)) {
 		p = pg_read_page(fp);
 		relname = pg_get_relname_from_page(p, filenode, oid);
+		xfree(p);
 		if (relname != NULL)
 			break;
 	}
