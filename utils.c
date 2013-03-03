@@ -21,7 +21,7 @@
 #include <string.h>
 #include <err.h>
 
-#include "pg_trace.h"
+#include "xmalloc.h"
 
 
 /*

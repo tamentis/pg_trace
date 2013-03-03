@@ -1,4 +1,3 @@
- - split the .h file, easier to see who uses what.
  - generate an oid, filenode, name table.
  - find out why 'pg_get_relname_from_page' it taking 82% of the CPU (because
    it's loading it all the time...).
@@ -20,3 +19,5 @@
  - progress mode (curses? show the currently opened tables and how much they
    are being used, how far we are in the lseek?)
  - understand table inheritance?
+ - two get and cache mechanisms: fd->filename, oid/filenode->relname, let's
+   clarify the code around this.

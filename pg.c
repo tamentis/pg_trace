@@ -20,19 +20,17 @@
 #include <string.h>
 #include <err.h>
 
-#include <postgres.h>
 #include <c.h>
+#include <postgres.h>
+#include <access/htup.h>
+#include <catalog/pg_class.h>
 #include <storage/bufpage.h>
 #include <storage/itemid.h>
-#include <catalog/pg_class.h>
-#include <access/htup.h>
 
-#include "pg_trace.h"
 #include "rncache.h"
 #include "relmapper.h"
-
-
-extern int debug_flag;
+#include "utils.h"
+#include "xmalloc.h"
 
 
 /*

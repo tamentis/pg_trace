@@ -35,11 +35,9 @@
 
 #include <postgres.h>
 
-#include "pg_trace.h"
 #include "rncache.h"
-
-
-extern int debug_flag;
+#include "utils.h"
+#include "xmalloc.h"
 
 
 /*

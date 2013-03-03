@@ -19,12 +19,8 @@
 #include <string.h>
 #include <err.h>
 
-#include "pg_trace.h"
-
-
-extern int debug_flag;
-
-#define MAX_FUNCTION_ARGUMENTS	32
+#include "strace.h"
+#include "utils.h"
 
 
 int

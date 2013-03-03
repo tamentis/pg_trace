@@ -17,10 +17,9 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "pg_trace.h"
-
-
-extern int debug_flag;
+#include "fdcache.h"
+#include "utils.h"
+#include "xmalloc.h"
 
 
 /*

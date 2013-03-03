@@ -15,17 +15,6 @@
  */
 
 
-/*
- * Maximum number of function arguments to parse out. Anything beyond that will
- * cause an error.
- */
-#define MAX_FUNCTION_ARGUMENTS	32
-
-/*
- * This is the maximum supported line size when reading lsof and strace.
- */
-#define MAX_LINE_LENGTH		1024
-
 /* How much to realloc when the cache is too tight. */
 #define FD_CACHE_GROWTH		64
 
@@ -33,10 +22,6 @@
 #define FD_CACHE_INVALID	-1
 
 
-#define debug(...) if (debug_flag) fprintf(stderr, __VA_ARGS__)
-
-
-/* fd_desc */
 enum fd_file_type {
 	FILE_TYPE_CHR,
 	FILE_TYPE_REG,
@@ -53,40 +38,10 @@ typedef struct _fd_desc {
 } fd_desc;
 
 
-/* strace.c */
-int		 strace_open(pid_t);
-void		 strace_read_lines(int, void (*func)(char *, int, char **, char*));
-
-/* lsof.c */
-void		 lsof_refresh_cache(pid_t);
-fd_desc		*lsof_get_fd_desc(int);
-
-/* fdcache.c */
+/* prototypes */
 void		 fd_cache_clear();
 fd_desc		*fd_cache_next();
 fd_desc		*fd_cache_get(int);
 void		 fd_cache_delete(int);
 void		 fd_cache_add(int, char *);
 
-/* utils.c */
-int		 xatoi(char *);
-int		 xatoi_or_zero(char *);
-char		*xitoa(int);
-
-/* xmalloc.c */
-char 		*xstrdup(const char *);
-void 		*xcalloc(size_t, size_t);
-void 		*xmalloc(size_t);
-void 		*xrealloc(void *, size_t, size_t);
-void		 xfree(void *);
-int		 xasprintf(char **, const char *, ...);
-int		 xvasprintf(char **, const char *, va_list);
-int		 xsnprintf(char *, size_t, const char *, ...);
-int		 xvsnprintf(char *, size_t, const char *, va_list);
-
-/* strlcpy.c */
-size_t		 strlcpy(char *, const char *, size_t);
-
-/* pg.c */
-char		*pg_get_relname_from_filepath(char *);
-void		 pg_load_rn_cache_from_pg_class(void);

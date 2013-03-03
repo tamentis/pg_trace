@@ -19,10 +19,13 @@
 #include <string.h>
 #include <err.h>
 
-#include "pg_trace.h"
+#include "fdcache.h"
+#include "lsof.h"
+#include "utils.h"
+#include "xmalloc.h"
+#include "pg.h"
 
 
-extern int debug_flag;
 pid_t latest_pid = 0;
 
 
@@ -183,3 +186,33 @@ lsof_get_fd_desc(int fd)
 
 	return fd_cache_get(fd);
 }
+
+
+
+/*
+ * Get human-readable file descriptor, if possible.
+ */
+char *
+lsof_get_human_fd(int fd)
+{
+	fd_desc *desc;
+	char buffer[MAX_HUMAN_FD_LENGTH];
+	char *relname;
+
+	desc = lsof_get_fd_desc(fd);
+
+	if (desc == NULL) {
+		snprintf(buffer, sizeof(buffer), "fd=%u", fd);
+	} else {
+		relname = pg_get_relname_from_filepath(desc->name);
+
+		if (relname == NULL) {
+			snprintf(buffer, sizeof(buffer), "filenode=%s", desc->name);
+		} else {
+			snprintf(buffer, sizeof(buffer), "relname=%s", relname);
+		}
+	}
+
+	return xstrdup(buffer);
+}
+

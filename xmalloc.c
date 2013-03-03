@@ -25,7 +25,8 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "pg_trace.h"
+#include "strlcpy.h"
+#include "xmalloc.h"
 
 
 char *

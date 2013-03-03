@@ -21,41 +21,14 @@
 #include <string.h>
 #include <err.h>
 
-#include "pg_trace.h"
+#include "fdcache.h"
+#include "strace.h"
+#include "lsof.h"
+#include "utils.h"
 
 
+#define _DEBUG_FLAG
 int debug_flag = 0;
-
-
-#define MAX_HUMAN_FD_LENGTH	256
-
-
-/*
- * Get human-readable file descriptor, if possible.
- */
-char *
-get_human_fd(int fd)
-{
-	fd_desc *desc;
-	char buffer[MAX_HUMAN_FD_LENGTH];
-	char *relname;
-
-	desc = lsof_get_fd_desc(fd);
-
-	if (desc == NULL) {
-		snprintf(buffer, sizeof(buffer), "fd=%u", fd);
-	} else {
-		relname = pg_get_relname_from_filepath(desc->name);
-
-		if (relname == NULL) {
-			snprintf(buffer, sizeof(buffer), "filenode=%s", desc->name);
-		} else {
-			snprintf(buffer, sizeof(buffer), "relname=%s", relname);
-		}
-	}
-
-	return xstrdup(buffer);
-}
 
 
 /*
@@ -69,7 +42,7 @@ process_fd_func(char *func_name, int argc, char **argv, char *result)
 
 	fd = xatoi(argv[0]);
 	size = argv[2];
-	human_fd = get_human_fd(fd);
+	human_fd = lsof_get_human_fd(fd);
 
 	printf("%s(%s, %s)\n", func_name, human_fd, size);
 }
@@ -88,7 +61,7 @@ process_func_seek(int argc, char **argv, char *result)
 	offset = argv[1];
 	whence = argv[2];
 
-	human_fd = get_human_fd(fd);
+	human_fd = lsof_get_human_fd(fd);
 	printf("lseek(%s, %s, %s)\n", human_fd, offset, whence);
 }
 
