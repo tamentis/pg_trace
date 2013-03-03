@@ -36,6 +36,7 @@
 #define debug(...) if (debug_flag) fprintf(stderr, __VA_ARGS__)
 
 
+/* fd_desc */
 enum fd_file_type {
 	FILE_TYPE_CHR,
 	FILE_TYPE_REG,
@@ -88,3 +89,4 @@ size_t		 strlcpy(char *, const char *, size_t);
 
 /* pg.c */
 char		*pg_get_relname_from_filepath(char *);
+void		 pg_load_rn_cache_from_pg_class(void);

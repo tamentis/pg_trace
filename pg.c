@@ -28,13 +28,32 @@
 #include <access/htup.h>
 
 #include "pg_trace.h"
+#include "rncache.h"
 #include "relmapper.h"
 
 
 extern int debug_flag;
 
+
+/*
+ * Since this tool is mostly targetted at backends and backends are not meant
+ * to access multiple clusters at the same time, we keep track of the firsts
+ * cluster path we find and assume this is the one until the end.
+ */
 char *current_cluster_path = NULL;
+
+/*
+ * And we also make the assumption that a backend will not connect to multiple
+ * databases. Experimentations show that \connect will spawn a new backend.
+ * TODO: make sure this is not a false assumption.
+ */
 Oid current_database_oid = InvalidOid;
+
+/*
+ * Did we do the initial rn_cache population? This can only happen once we know
+ * the cluster path and database oid.
+ */
+int rn_cache_initial_load = 0;
 
 
 /*
@@ -66,8 +85,9 @@ pg_get_pg_class_filepath()
 
 
 /*
- * Assumes the file pointer's cursor is one PageHeaderData deep, we'll read
- * only what's left of the page and return the pointer to the rea
+ * Reads one page from the provided file pointer.
+ *
+ * Returns NULL if we can't read an entire header or an entire page.
  */
 Page *
 pg_read_page(FILE *fp)
@@ -78,15 +98,23 @@ pg_read_page(FILE *fp)
 
 	/* Read the page header */
 	ph = xmalloc(SizeOfPageHeaderData);
-	if (fread(ph, SizeOfPageHeaderData, 1, fp) != 1)
+	if (fread(ph, SizeOfPageHeaderData, 1, fp) != 1) {
+		xfree(ph);
+		if (feof(fp))
+			return NULL;
 		errx(1, "unable to read page header");
+	}
 
 	/* Fill the rest of the data */
 	p = xrealloc(ph, 1, PageGetPageSize(ph));
 	l = fread((void *)p + SizeOfPageHeaderData,
 			PageGetPageSize(p) - SizeOfPageHeaderData, 1, fp);
-	if (l != 1)
+	if (l != 1) {
+		xfree(p);
+		if (feof(fp))
+			return NULL;
 		errx(1, "pg_read_page:fread()");
+	}
 
 	return p;
 }
@@ -184,8 +212,8 @@ parse_filenode:
 }
 
 
-char *
-pg_get_relname_from_page(Page *p, Oid filenode, Oid oid)
+void
+pg_load_rn_cache_from_page(Page *p)
 {
 	int i, count;
 	PageHeaderData *ph;
@@ -194,7 +222,7 @@ pg_get_relname_from_page(Page *p, Oid filenode, Oid oid)
 	ItemIdData *pd_linp;
 	Oid id;
 
-	debug("pg_get_relname_from_page(%u, %u)\n", filenode, oid);
+	debug("pg_load_rn_cache_from_page(%p)\n", p);
 
 	ph = (PageHeaderData *)p;
 	count = (ph->pd_lower - SizeOfPageHeaderData) / sizeof(ItemIdData);
@@ -218,16 +246,9 @@ pg_get_relname_from_page(Page *p, Oid filenode, Oid oid)
 
 		ci = (FormData_pg_class *)((void *)hthd + hthd->t_hoff);
 
-		if (oid != InvalidOid)
-			if (id == oid)
-				return xstrdup(NameStr(ci->relname));
-
-		if (filenode != InvalidOid)
-			if (ci->relfilenode == filenode)
-				return xstrdup(NameStr(ci->relname));
+		rn_cache_add(RN_ORIGIN_PGCLASS, id, ci->relfilenode,
+				NameStr(ci->relname));
 	}
-
-	return NULL;
 }
 
 
@@ -236,28 +257,25 @@ pg_get_relname_from_page(Page *p, Oid filenode, Oid oid)
  * but until refactored, whichever one is not InvalidOid is the one used for
  * filtering.
  */
-char *
-pg_get_relname(Oid filenode, Oid oid)
+void
+pg_load_rn_cache_from_pg_class()
 {
 	FILE *fp;
-	char *pg_class_filepath, *relname;
+	char *pg_class_filepath;
 	Page *p;
 
 	pg_class_filepath = pg_get_pg_class_filepath();
 	if (pg_class_filepath == NULL)
-		return NULL;
+		return;
+
+	debug("pg_load_rn_cache_from_pg_class() path:%s\n", pg_class_filepath);
 
 	fp = fopen(pg_class_filepath, "rb");
-	while (!feof(fp)) {
-		p = pg_read_page(fp);
-		relname = pg_get_relname_from_page(p, filenode, oid);
+	while ((p = pg_read_page(fp)) != NULL) {
+		pg_load_rn_cache_from_page(p);
 		xfree(p);
-		if (relname != NULL)
-			break;
 	}
 	fclose(fp);
-
-	return relname;
 }
 
 
@@ -280,6 +298,15 @@ pg_get_relname_from_filepath(char *filepath)
 		return NULL;
 
 	/*
+	 * If we the rn cache is empty at this point, fill it, we should have
+	 * all the path required to load pg_class.
+	 */
+	if (rn_cache_initial_load == 0) {
+		pg_load_rn_cache_from_pg_class();
+		rn_cache_initial_load = 1;
+	}
+
+	/*
 	 * Attempt to get the relname from the relmapper, in case this filepath
 	 * belongs to a "special" object that does not have a filenode in the
 	 * pg_class table.
@@ -287,12 +314,12 @@ pg_get_relname_from_filepath(char *filepath)
 	load_relmap_file(shared);
 	mapped_oid = FilenodeToRelationMapOid(filenode, shared);
 	if (mapped_oid != InvalidOid) {
-		relname = pg_get_relname(InvalidOid, mapped_oid);
+		relname = rn_cache_get_from_oid(mapped_oid);
 		if (relname != NULL)
 			return relname;
 	}
 
-	relname = pg_get_relname(filenode, InvalidOid);
+	relname = rn_cache_get_from_filenode(filenode);
 
 	return relname;
 }

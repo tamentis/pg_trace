@@ -1,5 +1,6 @@
 BINARY=pg_trace
-OBJECTS=main.o strace.o strdelim.o utils.o xmalloc.o lsof.o fdcache.o pg.o relmapper.o
+OBJECTS=main.o strace.o strdelim.o utils.o xmalloc.o lsof.o fdcache.o pg.o \
+	relmapper.o rncache.o
 OBJECTS+=${EXTRA_OBJECTS}
 
 all: ${BINARY} random_reads

@@ -1,4 +1,7 @@
- - find out why 'pg_get_relname_from_page' it taking 82% of the CPU.
+ - split the .h file, easier to see who uses what.
+ - generate an oid, filenode, name table.
+ - find out why 'pg_get_relname_from_page' it taking 82% of the CPU (because
+   it's loading it all the time...).
  - check for strace and lsof.
  - check for postgres version.
  - run on openbsd, create a port.
@@ -12,3 +15,8 @@
  - don't die if you're not root.
  - make it work with struss (OS X).
  - make it work with ktrace (obsd).
+ - fix debugging (not clear what does what, what outputs what)
+ - pass through (s)trace calls
+ - progress mode (curses? show the currently opened tables and how much they
+   are being used, how far we are in the lseek?)
+ - understand table inheritance?
