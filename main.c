@@ -63,14 +63,32 @@ get_human_fd(int fd)
 void
 process_fd_func(char *func_name, int argc, char **argv, char *result)
 {
-	int fd, size;
-	char *human_fd;
+	int fd;
+	char *human_fd, *size;
 
 	fd = xatoi(argv[0]);
-	size = xatoi(argv[2]);
+	size = argv[2];
+	human_fd = get_human_fd(fd);
+
+	printf("%s(%s, %s)\n", func_name, human_fd, size);
+}
+
+
+/*
+ * Take any function with the file descriptor as first argument.
+ */
+void
+process_func_seek(int argc, char **argv, char *result)
+{
+	int fd;
+	char *human_fd, *offset, *whence;
+
+	fd = xatoi(argv[0]);
+	offset = argv[1];
+	whence = argv[2];
 
 	human_fd = get_human_fd(fd);
-	printf("%s(%s, %u)\n", func_name, human_fd, size);
+	printf("lseek(%s, %s, %s)\n", human_fd, offset, whence);
 }
 
 
@@ -81,6 +99,9 @@ void
 process_func_open(int argc, char **argv, char *result)
 {
 	int fd;
+
+	if (argc != 2)
+		errx(1, "error: open() with %u args", argc);
 
 	fd = xatoi(result);
 
@@ -95,6 +116,9 @@ void
 process_func_close(int argc, char **argv, char *result)
 {
 	int fd;
+
+	if (argc != 1)
+		errx(1, "error: close() with %u args", argc);
 
 	fd = xatoi(argv[0]);
 
@@ -121,7 +145,7 @@ process_func(char *func_name, int argc, char **argv, char *result)
 	// } else if (strcmp(func_name, "sendto") == 0) {
 	// 	process_fd_func(func_name, argc, argv, result);
 	} else if (strcmp(func_name, "lseek") == 0) {
-		process_fd_func(func_name, argc, argv, result);
+		process_func_seek(argc, argv, result);
 	} else {
 		debug("unknown func: %s, argc: %d\n", func_name, argc);
 	}
@@ -139,7 +163,7 @@ usage()
 int
 main(int argc, char **argv)
 {
-	int pipe, opt;
+	int fd, opt;
 	extern char *optarg;
 	pid_t pid = 0;
 
@@ -162,8 +186,9 @@ main(int argc, char **argv)
 
 	lsof_refresh_cache(pid);
 
-	pipe = strace_open(pid);
-	strace_read_lines(pipe, process_func);
+	fd = strace_open(pid);
+	strace_read_lines(fd, process_func);
+	close(fd);
 
 	return 0;
 }

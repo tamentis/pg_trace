@@ -26,6 +26,12 @@
  */
 #define MAX_LINE_LENGTH		1024
 
+/* How much to realloc when the cache is too tight. */
+#define FD_CACHE_GROWTH		64
+
+/* Sentinel value. */
+#define FD_CACHE_INVALID	-1
+
 
 #define debug(...) if (debug_flag) fprintf(stderr, __VA_ARGS__)
 

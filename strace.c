@@ -22,6 +22,8 @@
 #include "pg_trace.h"
 
 
+extern int debug_flag;
+
 #define MAX_FUNCTION_ARGUMENTS	32
 
 
@@ -64,20 +66,80 @@ strace_open(pid_t pid)
 
 
 /*
- * If the first character of s is a double quote, return a pointer one byte
- * further and pull the final NUL byte closer.
- *
- * FIXME: this can be more robust (escape characters?)
+ * Marks the first parenthesis as a NUL byte to delimite the func_name and
+ * return a pointer to the beginning of the arguments.
  */
 char *
-_extract_argument(char *start, char *end)
+_skip_func_name(char *s)
 {
+	char *c;
+
+	c = strchr(s, '(');
+	if (c == NULL)
+		errx(1, "process_line(): not a function: %s", s);
+
+	*c = '\0';
+	c++;
+
+	return c;
+}
+
+
+/*
+ * Find the next comma or parenthesis, sets it as NUL byte to delimit the
+ * possible previous argument.
+ *
+ * If the first character of *s is a double quote or '{' try to find the
+ * matching character.
+ *
+ * FIXME: this can be more robust (escape characters?) and we don't do a good
+ * job on cropped data (keep stuff at the end...)
+ */
+char *
+_extract_argument(char **startp)
+{
+	char *start = *startp;
+	char *end, *valueend;
+
+	/* Strip spaces. */
+	while (*start == ' ')
+		start++;
+
+	/* This is a quoted argument, find the final double-quote. */
 	if (*start == '"') {
 		start++;
-		end--;
+		end = start;
+		for (;;) {
+			end = strchr(end, '"');
+			if (*(end - 1) != '\\') {
+				*end = '\0';
+				break;
+			}
+		}
+		valueend = end + 1;
+	} else if (*start == '{') {
+		start++;
+		end = strchr(start, '}');
+		*end = '\0';
+		valueend = end + 1;
+	} else {
+		valueend = start;
 	}
 
+	/* More arguments. */
+	end = strchr(valueend, ',');
+	if (end == NULL)
+		end = strchr(valueend, ')');
+	if (end == NULL)
+		return NULL;
+
+	/* No arguments left, return NULL. */
+	if (end == start)
+		start = NULL;
+
+	/* At this point 'end' should point to a comma or parenthesis. */
 	*end = '\0';
+	*startp = end + 1;
 
 	return start;
 }
@@ -95,37 +157,19 @@ strace_process_line(char *line, void (*func_handler)(char *, int, char **, char*
 {
 	char *func_name;
 	char *result = NULL;
-	char *argv[MAX_FUNCTION_ARGUMENTS];
+	char *argv[MAX_FUNCTION_ARGUMENTS] = { 0 };
 	char *c, *a;
 	int argc = 0;
 
-	/* Extract function name. */
 	func_name = line;
-	c = strchr(line, '(');
-	if (c == NULL)
-		errx(1, "process_line(): not a function: %s", line);
 
-	*c = '\0';
-	c++;
+	c = _skip_func_name(line);
 
-	// TODO check for NUL byte here, in case the ( was the last char.
-
-	/* Extract the arguments (anything before a comma) */
-	while ((a = strchr(c, ',')) != NULL) {
-		argv[argc] = _extract_argument(c, a);
-		c = a + 1;
+	/* Extract all the arguments. */
+	while ((a = _extract_argument(&c)) != NULL) {
+		argv[argc] = a;
 		argc++;
 	}
-
-	/* Extract the final argument. */
-	a = strchr(c, ')');
-	if (a == NULL) {
-		errx(1, "process_line(): wrong last param syntax");
-	} else if (a != c) {
-		argv[argc] = _extract_argument(c, a);
-		argc++;
-	}
-	c = a + 1;
 
 	/* Extract a function return if any. */
 	a = strchr(c, '=');

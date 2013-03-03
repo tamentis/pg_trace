@@ -272,7 +272,8 @@ pg_get_relname_from_filepath(char *filepath)
 	bool shared = false;
 
 	filenode = pg_get_filenode_from_filepath(filepath, &shared);
-	debug("pg_get_relname_from_filepath(%s) -> filenode_oid=%u\n", filepath, filenode);
+	debug("pg_get_relname_from_filepath(%s) -> filenode_oid=%u\n",
+			filepath, filenode);
 
 	if (filenode == InvalidOid)
 		return NULL;

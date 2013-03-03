@@ -20,11 +20,6 @@
 #include "pg_trace.h"
 
 
-/* How much to realloc when the cache is too tight. */
-#define FD_CACHE_GROWTH		64
-#define FD_CACHE_INVALID	-1
-
-
 extern int debug_flag;
 
 
@@ -83,6 +78,8 @@ fd_cache_next()
 	}
 
 	item = &fd_cache[fd_cache_length - 1];
+	item->fd = FD_CACHE_INVALID;
+	item->name = NULL;
 
 	return item;
 }

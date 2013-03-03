@@ -152,14 +152,15 @@ lsof_read_lines(int fd)
 void
 lsof_refresh_cache(pid_t pid)
 {
-	int pipe;
+	int fd;
 
 	debug("lsof_refresh_cache(pid=%d)\n", pid);
 
 	fd_cache_clear();
 
-	pipe = lsof_open(pid);
-	lsof_read_lines(pipe);
+	fd = lsof_open(pid);
+	lsof_read_lines(fd);
+	close(fd);
 
 	/* Keep that for later refreshes */
 	latest_pid = pid;
