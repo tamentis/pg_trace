@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <unistd.h>
 #include <string.h>
 #include <err.h>
@@ -160,6 +161,14 @@ usage()
 }
 
 
+void
+sigint_handler(void)
+{
+	fprintf(stderr, "Interrupted\n");
+	exit(1);
+}
+
+
 int
 main(int argc, char **argv)
 {
@@ -185,6 +194,8 @@ main(int argc, char **argv)
 		usage();
 
 	lsof_refresh_cache(pid);
+
+	signal(SIGINT, (sighandler_t)sigint_handler);
 
 	fd = strace_open(pid);
 	strace_read_lines(fd, process_func);

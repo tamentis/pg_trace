@@ -2,7 +2,7 @@ pg_trace - trace postgres processes
 ===================================
 
           "You can guess most of what a database is doing from the
-              activity of its file descriptors." - Justin Bieber
+             activity of its file descriptors." - Justin Bieber
 
 INTRO
     Wrapper around ``strace``-like tools and ``lsof`` that prints the tables
