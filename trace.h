@@ -22,6 +22,6 @@
 #define MAX_FUNCTION_ARGUMENTS	32
 
 
-int		 strace_open(pid_t);
-void		 strace_read_lines(int, void (*func)(char *, int, char **, char*));
-void		 strace_resolve_path(void);
+int		 trace_open(pid_t);
+void		 trace_read_lines(int, void (*func)(char *, int, char **, char*));
+void		 trace_resolve_path(void);

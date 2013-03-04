@@ -40,15 +40,11 @@ char *
 which(char *progname)
 {
 	char *path;
-	char *output;
 
 	if ((path = getenv("PATH")) == NULL)
 		err(1, "can't get $PATH from environment");
 
-	if ((output = findprog(progname, path)) == NULL)
-		errx(1, "%s: command not found", progname);
-
-	return output;
+	return findprog(progname, path);
 }
 
 
