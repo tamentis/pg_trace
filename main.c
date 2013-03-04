@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/param.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -24,11 +26,14 @@
 #include "fdcache.h"
 #include "trace.h"
 #include "lsof.h"
+#include "ps.h"
 #include "utils.h"
+#include "xmalloc.h"
 
 
 #define _DEBUG_FLAG
 int debug_flag = 0;
+char *pwd = NULL;
 
 
 /*
@@ -67,19 +72,47 @@ process_func_seek(int argc, char **argv, char *result)
 
 
 /*
+ * Attempt to produce an absolute path if a relative path is given. Using the
+ * 'pwd' global variable set in main.
+ */
+char *
+resolve_path(char *path)
+{
+	char buffer[MAXPATHLEN];
+
+	if (path == NULL)
+		return NULL;
+
+	if (path[0] == '/')
+		return xstrdup(path);
+
+	snprintf(buffer, sizeof(buffer), "%s/%s", pwd, path);
+
+	return xstrdup(buffer);
+}
+
+
+/*
  * Handle an 'open' call, update the fdcache accordingly.
  */
 void
 process_func_open(int argc, char **argv, char *result)
 {
 	int fd;
+	char *human_fd, *path;
 
-	if (argc != 2)
+	if (argc != 2 && argc != 3)
 		errx(1, "error: open() with %u args", argc);
 
 	fd = xatoi(result);
+	human_fd = lsof_get_human_fd(fd);
+	path = resolve_path(argv[0]);
 
-	fd_cache_add(fd, argv[0]);
+	fd_cache_add(fd, path);
+	printf("open(%s, ...) -> %s\n", path, human_fd);
+
+	if (path != NULL)
+		xfree(path);
 }
 
 
@@ -90,6 +123,7 @@ void
 process_func_close(int argc, char **argv, char *result)
 {
 	int fd;
+	char *human_fd;
 
 	if (argc != 1)
 		errx(1, "error: close() with %u args", argc);
@@ -97,6 +131,10 @@ process_func_close(int argc, char **argv, char *result)
 	fd = xatoi(argv[0]);
 
 	fd_cache_delete(fd);
+
+	human_fd = lsof_get_human_fd(fd);
+
+	printf("close(%s)\n", human_fd);
 }
 
 
@@ -166,10 +204,13 @@ main(int argc, char **argv)
 	if (pid == 0)
 		usage();
 
+	ps_resolve_path();
 	trace_resolve_path();
 	lsof_resolve_path();
 	lsof_refresh_cache(pid);
 
+	pwd = ps_get_pwd(pid);
+	debug("process pwd: %s\n", pwd);
 
 	signal(SIGINT, sigint_handler);
 

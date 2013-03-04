@@ -21,6 +21,7 @@ postgres
  - understand table inheritance? try to estimate how many tables were scanned
    as part of a parent-table scan
  - only refresh the rn_cache if we see a write on pg_class.
+ - detect _fsm and _vm files and get the relname just as much, maybe with a suffix.
 
 ui
 --
@@ -36,15 +37,10 @@ code
    clarify the code around this.
  - also put the relmap in rn_cache?
 
-openbsd
--------
- - find a way to make it work with ktrace/kdump
- - make a port
-
-debian
-------
- - package
-
-mac
----
- - make it work with dtruss (OS X).
+multi-platform
+--------------
+ - [openbsd] find a way to make it work with ktrace/kdump
+ - [openbsd] make a port
+ - [debian/ubuntu] make package
+ - [mac] make it work with dtruss (OS X).
+ - decide if we do the trace switches dynamically or in ./configure.

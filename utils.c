@@ -25,45 +25,68 @@
 
 
 /*
- * Converts a char to int, with fatal error if anything goes wrong.
+ * Converts a char to int, with fatal error if anything goes wrong. This
+ * function is also able to convert an hexadecimal value if it starts with \x
+ * or 0x.
  */
 int
 xatoi(char *c)
 {
-	int i;
+	int base = 10;
+	long l;
 	char *endptr;
 
-	i = strtol(c, &endptr, 10);
+	if (strncmp(c, "0x", 2) == 0 || strncmp(c, "\\x", 2) == 0) {
+		c += 2;
+		base = 16;
+	}
+
+	l = strtol(c, &endptr, base);
 
 	if (*endptr != '\0')
-		errx(1, "xatoi() invalid int");
+		errx(1, "xatoi() invalid number");
 
-	if (i == (int)LONG_MAX || i == (int)LONG_MIN) {
+	if (l == LONG_MAX || l == LONG_MIN) {
 		err(1, "xatoi()");
 	}
 
-	return i;
+	if (l < (long)INT_MIN || l > (long)INT_MAX) {
+		errx(1, "xatoi() too large for int");
+	}
+
+	return (int)l;
 }
 
 
 /*
- * Converts a char to int, returns 0 if anything goes wrong.
+ * Converts a char to int, returns 0 if anything goes wrong. This function is
+ * also able to convert an hexadecimal value if it starts with \x or 0x.
  */
 int
 xatoi_or_zero(char *c)
 {
-	int i;
+	int base = 10;
+	long l;
 	char *endptr;
 
-	i = strtol(c, &endptr, 10);
+	if (strncmp(c, "0x", 2) == 0 || strncmp(c, "\\x", 2) == 0) {
+		c += 2;
+		base = 16;
+	}
+
+	l = strtol(c, &endptr, base);
 
 	if (*endptr != '\0')
 		return 0;
 
-	if (i == (int)LONG_MAX || i == (int)LONG_MIN)
+	if (l == LONG_MAX || l == LONG_MIN)
 		return 0;
 
-	return i;
+	if (l < (long)INT_MIN || l > (long)INT_MAX) {
+		return 0;
+	}
+
+	return (int)l;
 }
 
 

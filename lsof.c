@@ -178,14 +178,6 @@ lsof_refresh_cache(pid_t pid)
 fd_desc *
 lsof_get_fd_desc(int fd)
 {
-	fd_desc *desc;
-
-	desc = fd_cache_get(fd);
-	if (desc != NULL)
-		return desc;
-
-	lsof_refresh_cache(latest_pid);
-
 	return fd_cache_get(fd);
 }
 

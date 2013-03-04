@@ -84,6 +84,8 @@ trace_open(pid_t pid)
 		}
 	}
 
+	debug("trace_open() pid: %u\n", trace_pid);
+
 	if (close(pipe_w) == -1)
 		err(1, "trace_open:close(pipe_w)");
 
@@ -161,8 +163,15 @@ _extract_argument(char **startp)
 				*end = '\0';
 				break;
 			}
+
 			end++;
 		}
+
+		/* dtruss leaves escaped-asciid nul bytes, we don't. */
+		if (use_dtruss && strncmp(end - 2, "\\0", 2) == 0) {
+			*(end - 2) = '\0';
+		}
+
 		valueend = end + 1;
 	} else if (*start == '{') {
 		start++;
@@ -208,6 +217,8 @@ trace_process_line(char *line, void (*func_handler)(char *, int, char **, char*)
 	char *c, *a;
 	int argc = 0;
 
+	// printf("LINE: %s\n", line);
+
 	func_name = line;
 
 	c = _skip_func_name(line);
@@ -221,15 +232,31 @@ trace_process_line(char *line, void (*func_handler)(char *, int, char **, char*)
 	/* Extract a function return if any. */
 	a = strchr(c, '=');
 	if (a != NULL) {
-		/* Skip the space (FIXME: skip all blanks) */
-		a++;
+		/* Skip the spaces. */
+		while (*a == ' ' || *a == '=')
+			a++;
+
 		result = a;
 
+		/*
+		 * Our friends at Apple have two values as return, TODO: figure
+		 * out what this is, if we need it...
+		 */
+		if (use_dtruss && (a = strchr(a, ' ')) != NULL)
+			*a = '\0';
+
 		/* Wipe the new-line. */
-		a = strchr(a, '\n');
+		a = strchr(result, '\n');
 		if (a != NULL)
 			*a = '\0';
 	}
+
+	/*
+	 * Looks like the folks at Apple decided to wrap all the system calls
+	 * and name their wrappers with a _nocancel suffix. Search and destroy.
+	 */
+	if ((c = strstr(func_name, "_nocancel")) != NULL)
+		*c = '\0';
 
 	func_handler(func_name, argc, argv, result);
 }
