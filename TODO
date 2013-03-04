@@ -1,23 +1,50 @@
- - check for postgres version.
- - run on openbsd, create a port.
- - create the debian package crap.
- - hunt leaks, plenty of them.
- - interpret the content of read/writes?
- - guess the position in a table based on chunks (.1, .2 etc.)
- - capture in hex, and decode if needed (read/write) instead of playing the
-   escape game.
- - what happens if pg writes pg_filenode while we read it.
- - don't die if you're not root.
- - make it work with struss (OS X).
- - make it work with ktrace (obsd).
- - fix debugging (not clear what does what, what outputs what)
+doc
+---
+ - explain how this whole thing work in README.
+
+lsof
+----
+ - only run lsof update at start, only rely on open/close after that.
+
+trace
+-----
+ - capture hex only and decode everything where appropriate, remove all the
+   escape-dance code.
  - pass through (s)trace calls
+
+postgres
+--------
+ - check for postgres version.
+ - try to interpret the content of read-writes?
+ - what happens if pg writes pg_filenode while we read it?
+ - guess the position in a table based on chunks (.1, .2 etc.)
+ - understand table inheritance? try to estimate how many tables were scanned
+   as part of a parent-table scan
+ - only refresh the rn_cache if we see a write on pg_class.
+
+ui
+--
  - progress mode (curses? show the currently opened tables and how much they
    are being used, how far we are in the lseek?)
- - understand table inheritance?
+ - don't die if you're not root.
+
+code
+----
+ - check for more leaks (valgrind)
+ - fix debugging (not clear what does what, what outputs what)
  - two get and cache mechanisms: fd->filename, oid/filenode->relname, let's
    clarify the code around this.
  - also put the relmap in rn_cache?
- - only run lsof update at start, only rely on open/close after that.
- - only refresh the rn_cache if we see a write on pg_class.
- - document the process a little...
+
+openbsd
+-------
+ - find a way to make it work with ktrace/kdump
+ - make a port
+
+debian
+------
+ - package
+
+mac
+---
+ - make it work with dtruss (OS X).

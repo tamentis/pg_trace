@@ -22,7 +22,7 @@
 #include <err.h>
 
 #include "fdcache.h"
-#include "strace.h"
+#include "trace.h"
 #include "lsof.h"
 #include "utils.h"
 
@@ -166,15 +166,15 @@ main(int argc, char **argv)
 	if (pid == 0)
 		usage();
 
-	strace_resolve_path();
+	trace_resolve_path();
 	lsof_resolve_path();
 	lsof_refresh_cache(pid);
 
 
 	signal(SIGINT, sigint_handler);
 
-	fd = strace_open(pid);
-	strace_read_lines(fd, process_func);
+	fd = trace_open(pid);
+	trace_read_lines(fd, process_func);
 	close(fd);
 
 	return 0;

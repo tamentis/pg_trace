@@ -19,47 +19,73 @@
 #include <string.h>
 #include <err.h>
 
-#include "strace.h"
+#include "trace.h"
 #include "utils.h"
 #include "which.h"
 
 
-char *strace_path = NULL;
+char *trace_path = NULL;
+int use_dtruss = 0;
+
+
+void
+trace_spawn_strace(char *pid)
+{
+	if (execl(trace_path, "strace",
+				"-q",		/* quiet */
+				"-s", "8",	/* no need for data */
+				"-p", pid,	/* pid to spy on */
+				(char*)NULL) == -1) {
+		err(1, "trace_spawn_strace:execl()");
+	}
+}
+
+
+void
+trace_spawn_dtruss(char *pid)
+{
+	if (execl(trace_path, "dtruss",
+				"-p", pid,	/* pid to spy on */
+				(char*)NULL) == -1) {
+		err(1, "trace_spawn_dtruss:execl()");
+	}
+}
 
 
 int
-strace_open(pid_t pid)
+trace_open(pid_t pid)
 {
 	int pipefd[2], pipe_r, pipe_w;
-	int strace_pid;
+	int trace_pid;
 	char *cpid;
 
 	cpid = xitoa((int)pid);
 
 	if (pipe(pipefd) == -1)
-		err(1, "strace_open:pipe()");
+		err(1, "trace_open:pipe()");
 
 	pipe_r = pipefd[0];
 	pipe_w = pipefd[1];
 
-	strace_pid = fork();
-	if (strace_pid == -1) {
-		err(1, "strace_open:fork()");
-	} else if (strace_pid == 0) {
+	trace_pid = fork();
+	if (trace_pid == -1) {
+		err(1, "trace_open:fork()");
+	} else if (trace_pid == 0) {
 		if (dup2(pipe_w, STDERR_FILENO) == -1)
-			err(1, "strace_open:dup2(pipe_w, stderr)");
+			err(1, "trace_open:dup2(pipe_w, stderr)");
+
 		if (close(pipe_r) == -1)
-			err(1, "strace_open:close(pipe_r)");
-		if (execl(strace_path, "strace",
-					"-q",		/* quiet */
-					"-s", "8",	/* no need for data */
-					"-p", cpid,	/* pid to spy on */
-					(char*)NULL) == -1)
-			err(1, "strace_open:execl()");
+			err(1, "trace_open:close(pipe_r)");
+
+		if (use_dtruss) {
+			trace_spawn_dtruss(cpid);
+		} else {
+			trace_spawn_strace(cpid);
+		}
 	}
 
 	if (close(pipe_w) == -1)
-		err(1, "strace_open:close(pipe_w)");
+		err(1, "trace_open:close(pipe_w)");
 
 	return pipe_r;
 }
@@ -174,7 +200,7 @@ _extract_argument(char **startp)
  * calling this function.
  */
 void
-strace_process_line(char *line, void (*func_handler)(char *, int, char **, char*))
+trace_process_line(char *line, void (*func_handler)(char *, int, char **, char*))
 {
 	char *func_name;
 	char *result = NULL;
@@ -211,29 +237,37 @@ strace_process_line(char *line, void (*func_handler)(char *, int, char **, char*
 
 /*
  * Read through the file descriptor, passing each parsed line to
- * strace_process_line.
+ * trace_process_line.
  */
 void
-strace_read_lines(int fd, void (*func_handler)(char *, int, char **, char*))
+trace_read_lines(int fd, void (*func_handler)(char *, int, char **, char*))
 {
 	FILE *fp;
 	char line[MAX_LINE_LENGTH];
 
 	fp = fdopen(fd, "r");
 	if (fp == NULL)
-		err(1, "strace_read_lines:fdopen()");
+		err(1, "trace_read_lines:fdopen()");
 
 	while (fgets(line, sizeof(line), fp)) {
-		strace_process_line(line, func_handler);
+		trace_process_line(line, func_handler);
 	}
 }
 
 
 /*
- * Resolve the strace path, throwing an error if it is not found.
+ * Resolve the trace path, throwing an error if it is not found.
  */
 void
-strace_resolve_path(void)
+trace_resolve_path(void)
 {
-	strace_path = which("strace");
+	trace_path = which("strace");
+
+	if (trace_path == NULL) {
+		trace_path = which("dtruss");
+		use_dtruss = 1;
+	}
+
+	if (trace_path == NULL)
+		errx(1, "strace (or dtruss) is not in your PATH");
 }

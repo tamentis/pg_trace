@@ -225,4 +225,7 @@ void
 lsof_resolve_path(void)
 {
 	lsof_path = which("lsof");
+
+	if (lsof_path == NULL)
+		errx(1, "lsof is not in your PATH");
 }
