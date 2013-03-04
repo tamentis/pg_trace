@@ -135,7 +135,7 @@ usage()
 
 
 void
-sigint_handler(void)
+sigint_handler(int sig)
 {
 	fprintf(stderr, "Interrupted\n");
 	exit(1);
@@ -171,7 +171,7 @@ main(int argc, char **argv)
 	lsof_refresh_cache(pid);
 
 
-	signal(SIGINT, (sighandler_t)sigint_handler);
+	signal(SIGINT, sigint_handler);
 
 	fd = strace_open(pid);
 	strace_read_lines(fd, process_func);
