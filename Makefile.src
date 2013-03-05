@@ -1,19 +1,11 @@
 BINARY=pg_trace
-OBJECTS=main.o trace.o strdelim.o utils.o xmalloc.o lsof.o fdcache.o pg.o \
-	relmapper.o rncache.o which.o ps.o
-OBJECTS+=${EXTRA_OBJECTS}
 
-all: ${BINARY} random_reads
-
-${BINARY}: ${OBJECTS}
-	${CC} ${LDFLAGS} -o ${BINARY} ${OBJECTS} ${CURSESLIB} 
-
-random_reads: random_reads.c
-	${CC} random_reads.c -o random_reads
+all:
+	make -C src/
 
 install: ${BINARY}
 	install -d -m 755 ${PREFIX}/bin
-	install -m 755 ${BINARY} ${PREFIX}/bin
+	install -m 755 src/${BINARY} ${PREFIX}/bin
 	install -d -m 755 ${PREFIX}/${MANDEST}/man1
 	install -m 644 ${BINARY}.1 ${PREFIX}/${MANDEST}/man1
 
@@ -21,6 +13,6 @@ mantest:
 	nroff -man pg_trace.1 | less -R
 
 clean:
-	rm -f ${BINARY} ${OBJECTS} test.o run_tests *core random_reads
+	make -C src/ clean
 
 

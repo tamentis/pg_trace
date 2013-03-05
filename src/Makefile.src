@@ -1,0 +1,13 @@
+BINARY=pg_trace
+OBJECTS=main.o trace.o strdelim.o utils.o xmalloc.o lsof.o fdcache.o pg.o \
+	relmapper.o rncache.o which.o ps.o
+OBJECTS+=${EXTRA_OBJECTS}
+
+all: ${BINARY} random_reads
+
+${BINARY}: ${OBJECTS}
+	${CC} ${LDFLAGS} -o ${BINARY} ${OBJECTS} ${CURSESLIB} 
+
+random_reads: random_reads.c
+	${CC} random_reads.c -o random_reads
+
