@@ -204,6 +204,9 @@ main(int argc, char **argv)
 	if (pid == 0)
 		usage();
 
+	if (geteuid() != 0)
+		errx(1, "you need to be root");
+
 	ps_resolve_path();
 	trace_resolve_path();
 	lsof_resolve_path();

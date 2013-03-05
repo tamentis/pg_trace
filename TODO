@@ -2,10 +2,6 @@ doc
 ---
  - explain how this whole thing work in README.
 
-lsof
-----
- - only run lsof update at start, only rely on open/close after that.
-
 trace
 -----
  - capture hex only and decode everything where appropriate, remove all the
@@ -27,7 +23,6 @@ ui
 --
  - progress mode (curses? show the currently opened tables and how much they
    are being used, how far we are in the lseek?)
- - don't die if you're not root.
 
 code
 ----
