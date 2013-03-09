@@ -16,32 +16,12 @@
 
 
 /* How much to realloc when the cache is too tight. */
-#define FD_CACHE_GROWTH		64
-
-/* Sentinel value. */
-#define FD_CACHE_INVALID	-1
-
-
-enum fd_file_type {
-	FILE_TYPE_CHR,
-	FILE_TYPE_REG,
-	FILE_TYPE_FIFO,
-	FILE_TYPE_IPV4,
-	FILE_TYPE_IPV6,
-	FILE_TYPE_UNKNOWN
-};
-
-typedef struct _fd_desc {
-	int fd;
-	enum fd_file_type type;
-	char *name;
-} fd_desc;
-
+#define PFD_CACHE_GROWTH	64
 
 /* prototypes */
-void		 fd_cache_clear();
-fd_desc		*fd_cache_next();
-fd_desc		*fd_cache_get(int);
-void		 fd_cache_delete(int);
-void		 fd_cache_add(int, char *);
-
+void		 pfd_cache_clear();
+pfd_t		*pfd_cache_next();
+pfd_t		*pfd_cache_get(int);
+void		 pfd_cache_delete(int);
+void		 pfd_cache_add(int, char *);
+void		 pfd_cache_preload_from_lsof(pid_t);

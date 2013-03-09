@@ -19,7 +19,10 @@
 #include <string.h>
 #include <err.h>
 
-#include "fdcache.h"
+#include <postgres.h>
+
+#include "pfd.h"
+#include "pfd_cache.h"
 #include "lsof.h"
 #include "utils.h"
 #include "xmalloc.h"
@@ -82,7 +85,7 @@ lsof_read_lines(int fd)
 {
 	FILE *fp;
 	char line[MAX_LINE_LENGTH], type, *c;
-	fd_desc *current = NULL;
+	pfd_t *current = NULL;
 
 	debug("lsof_read_lines(fd=%d)\n", fd);
 
@@ -106,7 +109,7 @@ lsof_read_lines(int fd)
 			if (c[0] == ' ') {
 				current = NULL;
 			} else {
-				current = fd_cache_next();
+				current = pfd_cache_next();
 			}
 			continue;
 		}
@@ -129,22 +132,22 @@ lsof_read_lines(int fd)
 		/* file type */
 		case 't':
 			if (strcmp(line, "CHR") == 0)
-				current->type = FILE_TYPE_CHR;
+				current->fd_type = FD_TYPE_CHR;
 			else if (strcmp(line, "REG") == 0)
-				current->type = FILE_TYPE_REG;
+				current->fd_type = FD_TYPE_REG;
 			else if (strcmp(line, "FIFO") == 0)
-				current->type = FILE_TYPE_FIFO;
+				current->fd_type = FD_TYPE_FIFO;
 			else if (strcmp(line, "IPv4") == 0)
-				current->type = FILE_TYPE_IPV4;
+				current->fd_type = FD_TYPE_IPV4;
 			else if (strcmp(line, "IPv6") == 0)
-				current->type = FILE_TYPE_IPV6;
+				current->fd_type = FD_TYPE_IPV6;
 			else {
-				current->type = FILE_TYPE_UNKNOWN;
+				current->fd_type = FD_TYPE_UNKNOWN;
 			}
 			break;
 		/* file name */
 		case 'n':
-			current->name = xstrdup(c);
+			current->filename = xstrdup(c);
 			break;
 		default:
 			errx(1, "lsof_read_lines() unknown type '%c'", type);
@@ -154,64 +157,10 @@ lsof_read_lines(int fd)
 }
 
 
-void
-lsof_refresh_cache(pid_t pid)
-{
-	int fd;
-
-	debug("lsof_refresh_cache(pid=%d)\n", pid);
-
-	fd_cache_clear();
-
-	fd = lsof_open(pid);
-	lsof_read_lines(fd);
-	close(fd);
-
-	/* Keep that for later refreshes */
-	latest_pid = pid;
-}
-
-
 /*
- * Wrapper around the fdcache, refresh the cache in case of miss.
- */
-fd_desc *
-lsof_get_fd_desc(int fd)
-{
-	return fd_cache_get(fd);
-}
-
-
-/*
- * Get human-readable file descriptor, if possible.
- */
-char *
-lsof_get_human_fd(int fd)
-{
-	fd_desc *desc;
-	char buffer[MAX_HUMAN_FD_LENGTH];
-	char *relname;
-
-	desc = lsof_get_fd_desc(fd);
-
-	if (desc == NULL) {
-		snprintf(buffer, sizeof(buffer), "fd=%u", fd);
-	} else {
-		relname = pg_get_relname_from_filepath(desc->name);
-
-		if (relname == NULL) {
-			snprintf(buffer, sizeof(buffer), "filenode=%s", desc->name);
-		} else {
-			snprintf(buffer, sizeof(buffer), "relname=%s", relname);
-		}
-	}
-
-	return xstrdup(buffer);
-}
-
-
-/*
- * Resolve the lsof path, throwing an error if it is not found.
+ * Resolve the lsof path.
+ *
+ * Throw an error if it is not found.
  */
 void
 lsof_resolve_path(void)

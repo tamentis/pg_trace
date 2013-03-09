@@ -19,6 +19,7 @@
 
 
 void		 lsof_refresh_cache(pid_t);
-fd_desc		*lsof_get_fd_desc(int);
-char		*lsof_get_human_fd(int);
+pfd_t		*lsof_get_pfd(int);
 void		 lsof_resolve_path(void);
+int		 lsof_open(pid_t);
+void		 lsof_read_lines(int);

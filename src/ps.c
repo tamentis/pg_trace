@@ -130,6 +130,8 @@ ps_get_pwd(pid_t pid)
 
 	*c = '\0';
 
+	debug("detected process PWD: %s\n", start);
+
 	return xstrdup(start);
 }
 

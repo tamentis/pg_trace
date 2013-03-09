@@ -1,3 +1,10 @@
+now!
+----
+- create a structure for 'pg_fd' that has all the right properties to be
+  carried around instead of passing around Oids and chars..
+- organize it all more like a strace translator, document it as such.
+- should be able to take input on stdin instead of strace.
+
 doc
 ---
  - explain how this whole thing work in README.
@@ -23,6 +30,8 @@ ui
 --
  - progress mode (curses? show the currently opened tables and how much they
    are being used, how far we are in the lseek?)
+ - if lsof is missing, just avoid pre-loading the pfd cache and start from
+   scratch.
 
 code
 ----

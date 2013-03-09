@@ -31,6 +31,7 @@
 #include "relmapper.h"
 #include "utils.h"
 #include "xmalloc.h"
+#include "pg.h"
 
 
 /*
@@ -56,6 +57,9 @@ int rn_cache_initial_load = 0;
 
 /*
  * Returns the filesystem path of the pg_class table.
+ *
+ * This function assumes both current_cluster_path and current_database_oid are
+ * valid.
  */
 char *
 pg_get_pg_class_filepath()
@@ -133,11 +137,13 @@ pg_read_page(FILE *fp)
  * /global/. If it does, you'll need to fix it ;)
  */
 Oid
-pg_get_filenode_from_filepath(char *org_filepath, bool *shared)
+pg_get_filenode_from_filepath(char *org_filepath, bool *shared,
+		enum db_file_type *type)
 {
 	int i;
 	char *c, *oid, *filepath;
 	Oid db_oid = InvalidOid;
+	enum db_file_type prospect_type = DB_FILE_TYPE_UNKNOWN;
 
 	/* Don't touch the original filepath, we still use it. */
 	filepath = xstrdup(org_filepath);
@@ -178,12 +184,25 @@ parse_database_oid:
 	*(oid - 6) = '\0';
 
 parse_filenode:
+	oid = c;
+
 	/* Skip the part chunk at the end of the OID, TODO: use that for the
 	 * progress management... later (each file is 1GB). */
-	oid = c;
 	c = strchr(oid, '.');
 	if (c != NULL)
 		*c = '\0';
+
+	/* If the file is a visibility map or a free space map, we still want
+	 * to resolve the table. */
+	if ((c = strstr(oid, "_vm")) != NULL) {
+		*c = '\0';
+		prospect_type = DB_FILE_TYPE_VM;
+	} else if ((c = strstr(oid, "_fsm")) != NULL) {
+		*c = '\0';
+		prospect_type = DB_FILE_TYPE_FSM;
+	} else {
+		prospect_type = DB_FILE_TYPE_TABLE;
+	}
 
 	/* Whatever's in oid at this point, has got to be an int, if the
 	 * conversion fail, this is not the droid we're looking for. */
@@ -205,6 +224,8 @@ parse_filenode:
 	}
 
 	xfree(filepath);
+
+	*type = prospect_type;
 
 	return (Oid)i;
 }
@@ -282,13 +303,13 @@ pg_load_rn_cache_from_pg_class()
  * Return NULL if we can't find anything relevant.
  */
 char *
-pg_get_relname_from_filepath(char *filepath)
+pg_get_relname_from_filepath(char *filepath, enum db_file_type *type)
 {
 	Oid filenode, mapped_oid;
 	char *relname = NULL;
 	bool shared = false;
 
-	filenode = pg_get_filenode_from_filepath(filepath, &shared);
+	filenode = pg_get_filenode_from_filepath(filepath, &shared, type);
 	debug("pg_get_relname_from_filepath(%s) -> filenode_oid=%u\n",
 			filepath, filenode);
 

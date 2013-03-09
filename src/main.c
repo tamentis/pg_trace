@@ -23,17 +23,66 @@
 #include <string.h>
 #include <err.h>
 
-#include "fdcache.h"
+#include <postgres.h>
+
+#include "pfd.h"
+#include "pfd_cache.h"
 #include "trace.h"
 #include "lsof.h"
 #include "ps.h"
 #include "utils.h"
 #include "xmalloc.h"
+#include "pg.h"
 
 
 #define _DEBUG_FLAG
 int debug_flag = 0;
 char *pwd = NULL;
+
+
+/*
+ * Get human-readable file descriptor, if possible.
+ */
+char *
+get_human_fd(int fd)
+{
+	pfd_t *pfd;
+	char buffer[MAX_HUMAN_FD_LENGTH];
+	char suffix[7] = "";
+	enum db_file_type type;
+	char *relname;
+
+	pfd = pfd_cache_get(fd);
+
+	if (pfd == NULL) {
+		snprintf(buffer, sizeof(buffer), "fd=%u", fd);
+	} else {
+		relname = pg_get_relname_from_filepath(pfd->filename, &type);
+
+		if (relname == NULL) {
+			snprintf(buffer, sizeof(buffer), "filenode=%s",
+					pfd->filename);
+		} else {
+			switch (type) {
+			case DB_FILE_TYPE_VM:
+				strlcpy(suffix, "(vm)", sizeof(suffix));
+				break;
+			case DB_FILE_TYPE_FSM:
+				strlcpy(suffix, "(fsm)", sizeof(suffix));
+				break;
+			case DB_FILE_TYPE_UNKNOWN:
+				strlcpy(suffix, "(?!?)", sizeof(suffix));
+			default:
+				break;
+			}
+
+			snprintf(buffer, sizeof(buffer), "relname=%s%s",
+					relname, suffix);
+		}
+	}
+
+	return xstrdup(buffer);
+}
 
 
 /*
@@ -47,7 +96,7 @@ process_fd_func(char *func_name, int argc, char **argv, char *result)
 
 	fd = xatoi(argv[0]);
 	size = argv[2];
-	human_fd = lsof_get_human_fd(fd);
+	human_fd = get_human_fd(fd);
 
 	printf("%s(%s, %s)\n", func_name, human_fd, size);
 }
@@ -66,7 +115,7 @@ process_func_seek(int argc, char **argv, char *result)
 	offset = argv[1];
 	whence = argv[2];
 
-	human_fd = lsof_get_human_fd(fd);
+	human_fd = get_human_fd(fd);
 	printf("lseek(%s, %s, %s)\n", human_fd, offset, whence);
 }
 
@@ -93,7 +142,7 @@ resolve_path(char *path)
 
 
 /*
- * Handle an 'open' call, update the fdcache accordingly.
+ * Handle an 'open' call, update the pfd_cache accordingly.
  */
 void
 process_func_open(int argc, char **argv, char *result)
@@ -105,10 +154,10 @@ process_func_open(int argc, char **argv, char *result)
 		errx(1, "error: open() with %u args", argc);
 
 	fd = xatoi(result);
-	human_fd = lsof_get_human_fd(fd);
+	human_fd = get_human_fd(fd);
 	path = resolve_path(argv[0]);
 
-	fd_cache_add(fd, path);
+	pfd_cache_add(fd, path);
 	printf("open(%s, ...) -> %s\n", path, human_fd);
 
 	if (path != NULL)
@@ -117,7 +166,7 @@ process_func_open(int argc, char **argv, char *result)
 
 
 /*
- * Handle a 'close' call, delete this fd from fdcache.
+ * Handle a 'close' call, delete this fd from pfd_cache.
  */
 void
 process_func_close(int argc, char **argv, char *result)
@@ -130,19 +179,21 @@ process_func_close(int argc, char **argv, char *result)
 
 	fd = xatoi(argv[0]);
 
-	fd_cache_delete(fd);
-
-	human_fd = lsof_get_human_fd(fd);
-
+	human_fd = get_human_fd(fd);
 	printf("close(%s)\n", human_fd);
+
+	pfd_cache_delete(fd);
 }
 
 
 /*
  * Check if we have a handler for this function and run it.
+ *
+ * If we no handler is found for this function call, we simply print the line
+ * as-is.
  */
 void
-process_func(char *func_name, int argc, char **argv, char *result)
+process_func(char *line, char *func_name, int argc, char **argv, char *result)
 {
 	if (strcmp(func_name, "read") == 0) {
 		process_fd_func(func_name, argc, argv, result);
@@ -152,14 +203,10 @@ process_func(char *func_name, int argc, char **argv, char *result)
 		process_func_open(argc, argv, result);
 	} else if (strcmp(func_name, "close") == 0) {
 		process_func_close(argc, argv, result);
-	// } else if (strcmp(func_name, "recvfrom") == 0) {
-	// 	process_fd_func(func_name, argc, argv, result);
-	// } else if (strcmp(func_name, "sendto") == 0) {
-	// 	process_fd_func(func_name, argc, argv, result);
 	} else if (strcmp(func_name, "lseek") == 0) {
 		process_func_seek(argc, argv, result);
 	} else {
-		debug("unknown func: %s, argc: %d\n", func_name, argc);
+		printf("%s", line);
 	}
 }
 
@@ -207,16 +254,18 @@ main(int argc, char **argv)
 	if (geteuid() != 0)
 		errx(1, "you need to be root");
 
+	/* Ensure the tools are available. */
 	ps_resolve_path();
 	trace_resolve_path();
 	lsof_resolve_path();
-	lsof_refresh_cache(pid);
+
+	pfd_cache_preload_from_lsof(pid);
 
 	pwd = ps_get_pwd(pid);
-	debug("process pwd: %s\n", pwd);
 
 	signal(SIGINT, sigint_handler);
 
+	/* Read the trace lines, TODO: optionally read from stdin. */
 	fd = trace_open(pid);
 	trace_read_lines(fd, process_func);
 	close(fd);

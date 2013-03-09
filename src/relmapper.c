@@ -40,12 +40,13 @@
  *
  *-------------------------------------------------------------------------
  */
-#include "postgres.h"
+#include <sys/stat.h>
 
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <err.h>
+
+#include <postgres.h>
 
 #include "access/xact.h"
 #include "catalog/catalog.h"

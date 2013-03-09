@@ -1,7 +1,8 @@
 #ifndef __PG_CRC32_TABLE__
 #define __PG_CRC32_TABLE__
 
-#include "postgres.h"
+#include <postgres.h>
+
 
 const uint32 pg_crc32_table[256] = {
   0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,

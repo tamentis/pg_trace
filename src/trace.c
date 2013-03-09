@@ -22,6 +22,7 @@
 #include "trace.h"
 #include "utils.h"
 #include "which.h"
+#include "xmalloc.h"
 
 
 char *trace_path = NULL;
@@ -209,15 +210,17 @@ _extract_argument(char **startp)
  * calling this function.
  */
 void
-trace_process_line(char *line, void (*func_handler)(char *, int, char **, char*))
+trace_process_line(char *line,
+		void (*func_handler)(char *, char *, int, char **, char*))
 {
 	char *func_name;
 	char *result = NULL;
 	char *argv[MAX_FUNCTION_ARGUMENTS] = { 0 };
 	char *c, *a;
+	char *org_line;
 	int argc = 0;
 
-	// printf("LINE: %s\n", line);
+	org_line = xstrdup(line);
 
 	func_name = line;
 
@@ -258,7 +261,9 @@ trace_process_line(char *line, void (*func_handler)(char *, int, char **, char*)
 	if ((c = strstr(func_name, "_nocancel")) != NULL)
 		*c = '\0';
 
-	func_handler(func_name, argc, argv, result);
+	func_handler(org_line, func_name, argc, argv, result);
+
+	xfree(org_line);
 }
 
 
@@ -267,7 +272,8 @@ trace_process_line(char *line, void (*func_handler)(char *, int, char **, char*)
  * trace_process_line.
  */
 void
-trace_read_lines(int fd, void (*func_handler)(char *, int, char **, char*))
+trace_read_lines(int fd,
+		void (*func_handler)(char *, char *, int, char **, char*))
 {
 	FILE *fp;
 	char line[MAX_LINE_LENGTH];

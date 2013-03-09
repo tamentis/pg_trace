@@ -15,13 +15,37 @@
  */
 
 
-enum db_file_type {
-	DB_FILE_TYPE_TABLE,
-	DB_FILE_TYPE_VM,
-	DB_FILE_TYPE_FSM,
-	DB_FILE_TYPE_UNKNOWN
+/*
+ * CHR to IPV6 types are directly mirrored from the lsof listing. New entries
+ * coming from open are typically REG and only REG are used for relname
+ * resolution.
+ *
+ * UNKNOWN is flagged on file descriptor that exist but without a type.
+ *
+ * INVALID is used to flag the item as invalid, this is the default type of a
+ * pfd, it also returns to this type when free'd.
+ */
+enum fd_type {
+	FD_TYPE_CHR,
+	FD_TYPE_REG,
+	FD_TYPE_FIFO,
+	FD_TYPE_IPV4,
+	FD_TYPE_IPV6,
+	FD_TYPE_UNKNOWN,
+	FD_TYPE_INVALID
 };
 
 
-char		*pg_get_relname_from_filepath(char *, enum db_file_type *);
-void		 pg_load_rn_cache_from_pg_class(void);
+typedef struct _pfd_t {
+	Oid		 database_oid;
+	Oid		 oid;
+	Oid		 filenode;
+	int		 fd;
+	enum fd_type	 fd_type;
+	char		*filename;
+	char		*relname;
+} pfd_t;
+
+
+pfd_t		*pfd_new(int);
+void		 pfd_clean(pfd_t *);

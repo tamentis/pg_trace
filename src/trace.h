@@ -23,5 +23,5 @@
 
 
 int		 trace_open(pid_t);
-void		 trace_read_lines(int, void (*func)(char *, int, char **, char*));
+void		 trace_read_lines(int, void (*func)(char *, char *, int, char **, char*));
 void		 trace_resolve_path(void);
