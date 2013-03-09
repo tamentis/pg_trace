@@ -145,7 +145,7 @@ pg_get_filenode_from_filepath(char *org_filepath, bool *shared,
 	Oid db_oid = InvalidOid;
 	enum db_file_type prospect_type = DB_FILE_TYPE_UNKNOWN;
 
-	/* Don't touch the original filepath, we still use it. */
+	/* Keep a copy for print in case we can't handle this function. */
 	filepath = xstrdup(org_filepath);
 
 	debug("pg_get_filenode_from_filepath(%s, %u)\n", filepath, *shared);
@@ -214,7 +214,7 @@ parse_filenode:
 	 * and current database oid. */
 	if (current_database_oid == InvalidOid && db_oid != InvalidOid) {
 		current_database_oid = db_oid;
-	} else if (current_database_oid != db_oid) {
+	} else if (!(*shared) && current_database_oid != db_oid) {
 		errx(1, "error: one backend shouldn't switch database");
 	}
 
