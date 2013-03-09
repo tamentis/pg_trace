@@ -32,6 +32,8 @@ ui
    are being used, how far we are in the lseek?)
  - if lsof is missing, just avoid pre-loading the pfd cache and start from
    scratch.
+ - proper fail if the PID is not existing
+ - proper fail if the PID disappears
 
 code
 ----

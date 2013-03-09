@@ -15,10 +15,16 @@
  */
 
 /*
- * Given a directory name, randomly pick files within it and read a random
- * number of bytes from them. When the path is a database within a PostgreSQL
+ * Given a list of directory names, randomly pick files within them and read a
+ * random number of bytes. When the paths is a database within a PostgreSQL
  * cluster, this makes debugging on pg_trace more convenient than running
  * random queries on a database with caching disabled.
+ *
+ * The following example will simulate random reads on the internal files of
+ * both a local database and the "global" (shared) database.
+ *
+ * 	pg_cluster="/var/lib/postgresql/9.2"
+ * 	random_reads "$pg_cluster/base/16384" "$pg_cluster/global"
  */
 
 #include <sys/param.h>
@@ -75,32 +81,34 @@ pick_file(char *filename)
 int
 main(int argc, char **argv)
 {
+	int i;
 	DIR *dp;
 	struct dirent *ep;
 	char fullpath[MAXPATHLEN];
 
-	if (argc != 2) {
-		printf("usage: random_reads path\n");
+	if (argc < 2) {
+		printf("usage: random_reads path ...\n");
 		exit(1);
 	}
 
-	dp = opendir(argv[1]);
-	if (dp == NULL)
-		err(1, "opendir(%s)", argv[1]);
-
 	/* Loop for eternity and feed filenames to pick_file. */
 	for (;;) {
-		rewinddir(dp);
+		for (i = 1; i < argc; i++) {
+			dp = opendir(argv[i]);
+			if (dp == NULL)
+				err(1, "opendir(%s)", argv[i]);
 
-		while ((ep = readdir(dp)) != NULL) {
-			snprintf(fullpath, sizeof(fullpath), "%s/%s",
-					argv[1], ep->d_name);
-			pick_file(fullpath);
+			while ((ep = readdir(dp)) != NULL) {
+				snprintf(fullpath, sizeof(fullpath), "%s/%s",
+						argv[i], ep->d_name);
+				pick_file(fullpath);
+			}
+
+			if (closedir(dp) != 0)
+				err(1, "closedir(dp)");
 		}
 	}
 
-	if (closedir(dp) != 0)
-		err(1, "closedir(dp)");
-
+	/* You will never get here (hit ^C to exit). */
 	return 0;
 }
