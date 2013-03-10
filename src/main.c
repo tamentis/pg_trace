@@ -216,27 +216,30 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (pid == 0)
-		usage();
-
-	if (geteuid() != 0)
-		errx(1, "you need to be root");
-
-	/* Ensure the tools are available. */
-	ps_resolve_path();
-	trace_resolve_path();
-	lsof_resolve_path();
-
-	pfd_cache_preload_from_lsof(pid);
-
-	pwd = ps_get_pwd(pid);
-
 	signal(SIGINT, sigint_handler);
 
-	/* Read the trace lines, TODO: optionally read from stdin. */
-	fd = trace_open(pid);
-	trace_read_lines(fd, process_func);
-	close(fd);
+	/* Nothing piped to stdin, we'll need tools. */
+	if (isatty(STDIN_FILENO)) {
+		if (geteuid() != 0)
+			errx(1, "you need to be root");
+
+		if (pid == 0)
+			usage();
+
+		ps_resolve_path();
+		trace_resolve_path();
+		lsof_resolve_path();
+
+		pfd_cache_preload_from_lsof(pid);
+
+		pwd = ps_get_pwd(pid);
+
+		fd = trace_open(pid);
+		trace_read_lines(fd, process_func);
+		close(fd);
+	} else {
+		trace_read_lines(STDIN_FILENO, process_func);
+	}
 
 	return 0;
 }

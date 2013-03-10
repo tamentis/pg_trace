@@ -45,7 +45,9 @@ it, we've all been there.
 The options are as follows:
 .Bl -tag -width Ds
 .It Fl p Ar pid
-Define what process to spy on.
+Define what process to spy on. This is optional if you feed
+.Nm
+a trace via stdin.
 .It Fl d
 Debug flag, print on screen everything that's going on in the backend.
 .It Fl h
@@ -73,6 +75,15 @@ as root, you don't have much of a choice.  Since it's written in C and since it
 parses data from a process that could be doing *ANYTHING*, it's very likely to
 be exploitable. If you're security conscious, please read the code, clone, fix
 and merge request.
+.Sh EXAMPLES
+Real-time-ish tracing of a backend:
+.Pp
+    sudo pg_trace -p 12345
+.Pp
+Capture and tracing after the fact:
+.Pp
+    sudo strace -p 12345 -o my_trace.out
+    sudo -u postgres pg_trace < my_trace.out
 .Sh REQUIREMENTS
 At a minimum, you'll need
 .Xr strace 1

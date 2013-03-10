@@ -26,7 +26,8 @@ USE CASE
 OPTIONS
      The options are as follows:
 
-     -p pid  Define what process to spy on.
+     -p pid  Define what process to spy on. This is optional if you feed
+	     pg_trace a trace via stdin.
 
      -d      Debug flag, print on screen everything that's going on in the
 	     backend.
