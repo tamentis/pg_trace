@@ -70,8 +70,6 @@ void
 rn_cache_clear() {
 	int i;
 
-	debug("rn_cache_clear()\n");
-
 	if (rn_pool == NULL)
 		return;
 
@@ -94,7 +92,6 @@ rn_cache_next()
 	/* We've outgrown our cache size, 3nl@rg3! */
 	if (rn_count > rn_pool_size) {
 		rn_pool_size += RN_CACHE_GROWTH;
-		debug("rn_cache_next(): growing to %d\n", rn_pool_size);
 		rn_pool = xrealloc(rn_pool, rn_pool_size, sizeof(rn_record));
 	}
 

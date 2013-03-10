@@ -46,8 +46,6 @@ lsof_open(pid_t pid)
 	pid_t lsof_pid;
 	char *cpid;
 
-	debug("lsof_open(pid=%d)\n", pid);
-
 	cpid = xitoa((int)pid);
 
 	if (pipe(pipefd) == -1)
@@ -86,8 +84,6 @@ lsof_read_lines(int fd)
 	FILE *fp;
 	char line[MAX_LINE_LENGTH], type, *c;
 	pfd_t *current = NULL;
-
-	debug("lsof_read_lines(fd=%d)\n", fd);
 
 	fp = fdopen(fd, "r");
 	if (fp == NULL)

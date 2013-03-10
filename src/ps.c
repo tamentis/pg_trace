@@ -63,8 +63,6 @@ ps_open(char *args, pid_t pid)
 		}
 	}
 
-	debug("ps_open() pid: %u\n", ps_pid);
-
 	if (close(pipe_w) == -1)
 		err(1, "ps_open:close(pipe_w)");
 

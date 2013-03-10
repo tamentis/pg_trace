@@ -85,8 +85,6 @@ trace_open(pid_t pid)
 		}
 	}
 
-	debug("trace_open() pid: %u\n", trace_pid);
-
 	if (close(pipe_w) == -1)
 		err(1, "trace_open:close(pipe_w)");
 

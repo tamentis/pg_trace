@@ -44,8 +44,6 @@ void
 pfd_cache_clear() {
 	int i;
 
-	debug("pfd_cache_clear()\n");
-
 	if (pfd_pool != NULL) {
 		for (i = 0; i < pfd_count; i++)
 			pfd_clean(&pfd_pool[i]);

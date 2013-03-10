@@ -81,6 +81,8 @@ pg_get_pg_class_filepath(bool shared)
 	snprintf(buffer, MAXPGPATH, "%s/base/%u/%d", current_cluster_path,
 			current_database_oid, filenode);
 
+	debug("pg_class is located at %s\n", buffer);
+
 	return xstrdup(buffer);
 }
 
@@ -131,8 +133,6 @@ pg_load_rn_cache_from_page(Page *p)
 	ItemIdData *pd_linp;
 	Oid id;
 
-	debug("pg_load_rn_cache_from_page(%p)\n", p);
-
 	ph = (PageHeaderData *)p;
 	count = (ph->pd_lower - SizeOfPageHeaderData) / sizeof(ItemIdData);
 
@@ -176,8 +176,6 @@ pg_load_rn_cache_from_pg_class(bool shared)
 	pg_class_filepath = pg_get_pg_class_filepath(shared);
 	if (pg_class_filepath == NULL)
 		return;
-
-	debug("pg_load_rn_cache_from_pg_class() path:%s\n", pg_class_filepath);
 
 	fp = fopen(pg_class_filepath, "rb");
 	while ((p = pg_read_page(fp)) != NULL) {
