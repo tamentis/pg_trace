@@ -90,10 +90,11 @@ ps_get_pwd(pid_t pid)
 	if (c == NULL)
 		err(1, "ps_get_pwd:fgets() (header)");
 
-	/* Get the line we need. */
+	/* Get the line we need. If we get nothing back at this point, this PID
+	 * is probably not available. */
 	c = fgets(line, sizeof(line), fp);
 	if (c == NULL)
-		err(1, "ps_get_pwd:fgets() (record)");
+		errx(1, "unable to get information about this PID");
 
 	close(fd);
 
