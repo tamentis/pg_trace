@@ -15,4 +15,5 @@ mantest:
 clean:
 	make -C src/ clean
 
-
+README: pg_trace.1
+	nroff -man pg_trace.1 | col -b > README

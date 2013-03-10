@@ -13,8 +13,8 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd $Mdocdate: February 24 2013 $
-.Dt pg_trace 1
+.Dd 2013-03-09
+.Dt pg_trace 1 URM
 .Os
 .Sh NAME
 .Nm pg_trace
@@ -27,21 +27,21 @@
 .Ek
 .Sh DESCRIPTION
 .Nm
-is a wrapper around strace-like tools and lsof that prints the tables
-being accessed by a particular PostgreSQL process (e.g. backend).
-
-Say you have a lengthy query that scans over TBs of data and you have one
-of the sales guys breathing down your neck to get its result. The query has
-already been running for an hour, you have no idea how long it will take,
-how far the backend has gotten.
-.Nm
-will translate the file descriptors found in strace/ktrace/struss and resolve
-them into table, index, xlog names so you can guesstimate how far the process
-is, assuming there is a sequential factor in this query (partitioned tables?
-table scan? etc.) lets you use your own editor to manage your passwords,
-categorize them and delete them. I wouldn't use anything but my favorite editor
-to manage a list, would you?
+is a wrapper around strace-like tools with enriched information regarding the
+file descriptors. Connected to a PostgreSQL backend, it can identify the
+objects being read/written (tables, indexes, wal logs, etc.).
+.Sh USE CASE
+The main reason why this was built is to spy on backends running large queries
+across larger datasets (GiBs to TiBs). Having access to the filename, offset,
+file index and table, can give you a vague but useful indicator on the progress
+of these queries.
 .Pp
+Obviously if
+.Nm
+is your last chance to figure out what's going on, you probably need to work on
+your schema, infrastructure and avoid this kind of situation, but let's face
+it, we've all been there.
+.Sh OPTIONS
 The options are as follows:
 .Bl -tag -width Ds
 .It Fl p Ar pid
@@ -51,25 +51,62 @@ Debug flag, print on screen everything that's going on in the backend.
 .It Fl h
 Print usage information.
 .El
+.Sh HOW IT WORKS
+.Nm
+intercept all the open() and close() function calls and keeps track of all the
+links between these file descriptors and their physical files. When it starts,
+.Nm
+will attempt to run lsof to collect all the current file descriptors
+for this process.
+.Pp
+In order to resolve these file paths to Postgres objects, it will attempt to
+read the content of the relation map, then scan through the pg_class table. In
+order to simplify the process, 
+.Nm
+reads the tables directly on the
+filesystem without connecting to the database. It is somewhat brutal but avoids
+setting up access to root and/or bother the existing processes.
+.Sh DISCLAIMER
+You're going to run
+.Nm
+as root, you don't have much of a choice.  Since it's written in C and since it
+parses data from a process that could be doing *ANYTHING*, it's very likely to
+be exploitable. If you're security conscious, please read the code, clone, fix
+and merge request.
+.Sh REQUIREMENTS
+At a minimum, you'll need
+.Xr strace 1
+if you're on Linux or
+.Xr dtruss 1m
+on Mac OS X. Optionally, you can benefit from having
+.Xr lsof 8
+to preload the file descriptor when
+.Nm
+attaches itself. It also forks a
+.Xr ps 1
+process but I doubt you're missing this one.
+.Sh INSTALL
+ ./configure
+ make
+ sudo make install
 .Sh SEE ALSO
 .Xr strace 1 ,
-.Xr lsof 8
+.Xr lsof 8 ,
+.Xr dtruss 1m ,
+.Xr ktrace 1 ,
+.Xr kdump 1
 .Sh BUGS
 None so far.
 .Sh AUTHORS
-pg_trace was written by Bertrand Janin <b@janin.com> and is distributed under
+.Nm
+was written by Bertrand Janin <b@janin.com> and is distributed under
 an ISC license (BSD compatible, OSI compatible).
 .Pp
-A bunch of utility functions are borrowed from OpenBSD and OpenSSH, both
+A bunch of utility functions are borrowed from OpenBSD, OpenSSH and tmux, all
 under ISC and BSD licenses, with copyrights from the following authors:
 .Pp
-    Copyright (c) 2004 Ted Unangst and Todd Miller
-    Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
-    Copyright (c) 2000 Markus Friedl.  All rights reserved.
-    Copyright (c) 2005,2006 Damien Miller.  All rights reserved.
-.Pp
-The array and xmalloc libraries are taken from tmux, with the following
-copyright notices:
-.Pp
-    Copyright (c) 2004 Nicholas Marriott <nicm@users.sourceforge.net>
-    Copyright (c) 2006 Nicholas Marriott <nicm@users.sourceforge.net>
+ Copyright (c) 2004 Ted Unangst and Todd Miller
+ Copyright (c) 1997,1998 Todd C. Miller <Todd.Miller@courtesan.com>
+ Copyright (c) 2000 Markus Friedl.  All rights reserved.
+ Copyright (c) 2005,2006 Damien Miller.  All rights reserved.
+ Copyright (c) 2004,2006 Nicholas Marriott <nicm@users.sourceforge.net>
