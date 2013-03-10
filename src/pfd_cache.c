@@ -61,22 +61,25 @@ pfd_cache_clear() {
 pfd_t *
 pfd_cache_next()
 {
-	pfd_t *item;
+	pfd_t *pfd;
 	pfd_count++;
 
 	/* We've outgrown our cache size, 3nl@rg3! */
 	if (pfd_count > pfd_pool_size) {
 		pfd_pool_size += PFD_CACHE_GROWTH;
-		debug("pfd_cache: growing pool to %d items\n", pfd_pool_size);
+		debug("pfd_cache: growing pool to %d pfds\n", pfd_pool_size);
 		pfd_pool = xrealloc(pfd_pool, pfd_pool_size, sizeof(pfd_t));
 	}
 
-	/* Pick up the next item from the grown pool, since it's uninitialized,
+	/* Pick up the next pfd from the grown pool, since it's uninitialized,
 	 * clean it up first.  */
-	item = &pfd_pool[pfd_count - 1];
-	pfd_clean(item);
+	pfd = &pfd_pool[pfd_count - 1];
+	pfd->fd = InvalidOid;
+	pfd->fd_type = FD_TYPE_INVALID;
+	pfd->relname = NULL;
+	pfd->filepath = NULL;
 
-	return item;
+	return pfd;
 }
 
 
