@@ -59,6 +59,7 @@ rn_record_invalidate(rn_record *rec)
 	rec->filenode = InvalidOid;
 	xfree(rec->relname);
 	rec->relname = NULL;
+	rec->shared = false;
 }
 
 

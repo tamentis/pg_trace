@@ -15,4 +15,4 @@
  */
 
 
-void		 pg_load_rn_cache_from_pg_class(void);
+void		 pg_load_rn_cache_from_pg_class(bool);

@@ -56,10 +56,15 @@ Oid current_database_oid = InvalidOid;
  * valid.
  */
 char *
-pg_get_pg_class_filepath()
+pg_get_pg_class_filepath(bool shared)
 {
 	int filenode;
 	char buffer[MAXPGPATH];
+
+	/* We can't obtain pg_class from the shared relmap, it's only available
+	 * in the local database's relmap. */
+	if (shared)
+		return NULL;
 
 	/* We haven't found any cluster or database yet, shouldn't be here. */
 	if (current_cluster_path == NULL || current_database_oid == InvalidOid)
@@ -70,9 +75,9 @@ pg_get_pg_class_filepath()
 	 * available in pg_class. It will also allow us to find the file node
 	 * for pg_class since it's a mapped file node itself.
 	 */
-	load_relmap_file(0);
+	load_relmap_file(false);
 
-	filenode = RelationMapOidToFilenode(RelationRelationId, 0);
+	filenode = RelationMapOidToFilenode(RelationRelationId, shared);
 	snprintf(buffer, MAXPGPATH, "%s/base/%u/%d", current_cluster_path,
 			current_database_oid, filenode);
 
@@ -162,13 +167,13 @@ pg_load_rn_cache_from_page(Page *p)
  * filtering.
  */
 void
-pg_load_rn_cache_from_pg_class()
+pg_load_rn_cache_from_pg_class(bool shared)
 {
 	FILE *fp;
 	char *pg_class_filepath;
 	Page *p;
 
-	pg_class_filepath = pg_get_pg_class_filepath();
+	pg_class_filepath = pg_get_pg_class_filepath(shared);
 	if (pg_class_filepath == NULL)
 		return;
 

@@ -38,7 +38,7 @@ extern Oid current_database_oid;
  * Did we do the initial rn_cache population? This can only happen once we know
  * the cluster path and database oid.
  */
-int rn_cache_initial_load = 0;
+int rn_cache_local_loaded = 0;
 
 
 /*
@@ -102,6 +102,7 @@ pfd_update_from_filepath(pfd_t *pfd)
 	/* Is this a shared (global) file? */
 	c = strstr(filepath, "/global/");
 	if (c != NULL) {
+		*c = '\0';
 		c = strchr(c + 1, '/') + 1;
 		pfd->shared = true;
 		goto parse_filenode;
@@ -173,7 +174,7 @@ parse_filenode:
 		errx(1, "error: one backend shouldn't switch database");
 	}
 
-	if (current_cluster_path == NULL && db_oid != InvalidOid) {
+	if (current_cluster_path == NULL) {
 		*(oid - 1) = '\0';
 		current_cluster_path = xstrdup(filepath);
 	}
@@ -182,8 +183,6 @@ parse_filenode:
 
 	pfd->filenode = (Oid)i;
 }
-
-
 
 
 /*
@@ -206,9 +205,9 @@ pfd_update_from_pg(pfd_t *pfd)
 	 * If we the rn cache is empty at this point, fill it, we should have
 	 * all the path required to load pg_class.
 	 */
-	if (rn_cache_initial_load == 0) {
-		pg_load_rn_cache_from_pg_class();
-		rn_cache_initial_load = 1;
+	if (pfd->shared == false && rn_cache_local_loaded == false) {
+		pg_load_rn_cache_from_pg_class(pfd->shared);
+		rn_cache_local_loaded = true;
 	}
 
 	/*

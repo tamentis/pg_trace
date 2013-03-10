@@ -18,6 +18,7 @@
 /* How much to realloc when the cache is too tight. */
 #define RN_CACHE_GROWTH		256
 
+
 /* Defines if a record originates from relmapper or pg_class */
 enum rn_origin {
 	RN_ORIGIN_RELMAPPER,
@@ -29,6 +30,7 @@ typedef struct _rn_record {
 	enum rn_origin origin;
 	Oid oid;
 	Oid filenode;
+	bool shared;
 	char *relname;
 } rn_record;
 
