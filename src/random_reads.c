@@ -36,6 +36,12 @@
 #include <err.h>
 
 
+
+/* Keep a number of file descriptors open at the same time. */
+FILE *fps[50] = {NULL};
+int fps_cursor = 0;
+
+
 /*
  * Read a random number of bytes off the given file.
  */
@@ -48,15 +54,23 @@ random_read(char *filename)
 
 	read_size = ((double)random() / (double)RAND_MAX) * sizeof(buf);
 
-	fp = fopen(filename, "rb");
+	/* Choose our fd slot randomly based on the previous random. */
+	fps_cursor += (read_size  & 0xF);
+	if (fps_cursor >= 50)
+		fps_cursor -= 50;
+
+	/* Close the previously declared file pointer. */
+	fp = fps[fps_cursor];
+	if (fp != NULL && fclose(fp) != 0)
+		errx(1, "fclose()");
+
+	fps[fps_cursor] = fopen(filename, "rb");
+	fp = fps[fps_cursor];
 	if (fp == NULL)
 		errx(1, "fopen(%s)", filename);
 
 	printf("pid=%u size=%u filename=%s\n", getpid(), read_size, filename);
 	fread(buf, read_size, 1, fp);
-
-	if (fclose(fp) != 0)
-		errx(1, "fclose()");
 }
 
 
@@ -99,6 +113,9 @@ main(int argc, char **argv)
 				err(1, "opendir(%s)", argv[i]);
 
 			while ((ep = readdir(dp)) != NULL) {
+				if (ep->d_name[0] == '.')
+					continue;
+
 				snprintf(fullpath, sizeof(fullpath), "%s/%s",
 						argv[i], ep->d_name);
 				pick_file(fullpath);

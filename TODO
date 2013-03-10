@@ -1,6 +1,5 @@
 now!
 ----
-- improve random_reads to keep a few fds open at the same time.
 - skip . and .. in random_reads.
 - you have to deal with two relmaps at the same time (local and shared).
 
