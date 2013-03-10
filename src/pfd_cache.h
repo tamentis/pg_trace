@@ -23,5 +23,5 @@ void		 pfd_cache_clear();
 pfd_t		*pfd_cache_next();
 pfd_t		*pfd_cache_get(int);
 void		 pfd_cache_delete(int);
-void		 pfd_cache_add(int, char *);
+pfd_t		*pfd_cache_add(int, char *);
 void		 pfd_cache_preload_from_lsof(pid_t);

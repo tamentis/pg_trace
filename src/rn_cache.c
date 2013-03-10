@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *
- * The 'rncache' facility is meant to avoid linear lookups to the pg_class and
+ * The 'rn_cache' facility is meant to avoid linear lookups to the pg_class and
  * relmap on-disk data. It is essentially an in-memory table of the following
  * fields:
  *
@@ -35,7 +35,7 @@
 
 #include <postgres.h>
 
-#include "rncache.h"
+#include "rn_cache.h"
 #include "utils.h"
 #include "xmalloc.h"
 
@@ -44,9 +44,9 @@
  * _size defines the size of the memory pool, _length defines the number of
  * items in this pool.
  */
-rn_record *rn_cache = NULL;
-int rn_cache_length = 0;
-int rn_cache_size = 0;
+rn_record *rn_pool = NULL;
+int rn_count = 0;
+int rn_pool_size = 0;
 
 
 /*
@@ -71,13 +71,13 @@ rn_cache_clear() {
 
 	debug("rn_cache_clear()\n");
 
-	if (rn_cache == NULL)
+	if (rn_pool == NULL)
 		return;
 
-	for (i = 0; i < rn_cache_length; i++)
-		rn_record_invalidate(&rn_cache[i]);
+	for (i = 0; i < rn_count; i++)
+		rn_record_invalidate(&rn_pool[i]);
 
-	rn_cache_length = 0;
+	rn_count = 0;
 }
 
 
@@ -88,16 +88,16 @@ rn_record *
 rn_cache_next()
 {
 	rn_record *item;
-	rn_cache_length++;
+	rn_count++;
 
 	/* We've outgrown our cache size, 3nl@rg3! */
-	if (rn_cache_length > rn_cache_size) {
-		rn_cache_size += RN_CACHE_GROWTH;
-		debug("rn_cache_next(): growing to %d\n", rn_cache_size);
-		rn_cache = xrealloc(rn_cache, rn_cache_size, sizeof(rn_record));
+	if (rn_count > rn_pool_size) {
+		rn_pool_size += RN_CACHE_GROWTH;
+		debug("rn_cache_next(): growing to %d\n", rn_pool_size);
+		rn_pool = xrealloc(rn_pool, rn_pool_size, sizeof(rn_record));
 	}
 
-	item = &rn_cache[rn_cache_length - 1];
+	item = &rn_pool[rn_count - 1];
 	item->relname = NULL;
 
 	return item;
@@ -112,11 +112,11 @@ rn_cache_get_from_oid(Oid oid)
 {
 	int i;
 
-	for (i = 0; i < rn_cache_length; i++) {
-		if (rn_cache[i].oid == InvalidOid)
+	for (i = 0; i < rn_count; i++) {
+		if (rn_pool[i].oid == InvalidOid)
 			continue;
-		if (rn_cache[i].oid == oid)
-			return rn_cache[i].relname;
+		if (rn_pool[i].oid == oid)
+			return rn_pool[i].relname;
 	}
 
 	return NULL;
@@ -131,11 +131,11 @@ rn_cache_get_from_filenode(Oid filenode)
 {
 	int i;
 
-	for (i = 0; i < rn_cache_length; i++) {
-		if (rn_cache[i].filenode == InvalidOid)
+	for (i = 0; i < rn_count; i++) {
+		if (rn_pool[i].filenode == InvalidOid)
 			continue;
-		if (rn_cache[i].filenode == filenode)
-			return rn_cache[i].relname;
+		if (rn_pool[i].filenode == filenode)
+			return rn_pool[i].relname;
 	}
 
 	return NULL;
@@ -152,9 +152,9 @@ rn_cache_delete(Oid oid)
 {
 	int i;
 
-	for (i = 0; i < rn_cache_length; i++) {
-		if (rn_cache[i].oid == oid) {
-			rn_record_invalidate(&rn_cache[i]);
+	for (i = 0; i < rn_count; i++) {
+		if (rn_pool[i].oid == oid) {
+			rn_record_invalidate(&rn_pool[i]);
 			return;
 		}
 	}
@@ -172,9 +172,9 @@ rn_cache_add(enum rn_origin origin, Oid oid, Oid filenode, char *relname)
 	rn_record *current = NULL;
 
 	/* First try to replace an empty slot. */
-	for (i = 0; i < rn_cache_length; i++) {
-		if (rn_cache[i].oid == InvalidOid) {
-			current = &rn_cache[i];
+	for (i = 0; i < rn_count; i++) {
+		if (rn_pool[i].oid == InvalidOid) {
+			current = &rn_pool[i];
 			break;
 		}
 	}
@@ -186,4 +186,23 @@ rn_cache_add(enum rn_origin origin, Oid oid, Oid filenode, char *relname)
 	current->oid = oid;
 	current->filenode = filenode;
 	current->relname = xstrdup(relname);
+}
+
+
+/*
+ * Debugging function dumping the content of the rn_cache to stdout.
+ */
+void
+rn_cache_print()
+{
+	int i;
+	rn_record *rn = NULL;
+
+	/* First try to replace an empty slot. */
+	for (i = 0; i < rn_count; i++) {
+		rn = &rn_pool[i];
+
+		printf("%i\t%i\t%i\t%i\t%s\n", i, rn->origin, rn->oid,
+				rn->filenode, rn->relname);
+	}
 }

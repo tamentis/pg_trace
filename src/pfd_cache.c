@@ -33,7 +33,7 @@ pfd_t *pfd_pool = NULL;
 int pfd_count = 0;
 
 /* Actual byte size of the pool, this can only grow. */
-int pool_size = 0;
+int pfd_pool_size = 0;
 
 
 
@@ -65,10 +65,10 @@ pfd_cache_next()
 	pfd_count++;
 
 	/* We've outgrown our cache size, 3nl@rg3! */
-	if (pfd_count > pool_size) {
-		pool_size += PFD_CACHE_GROWTH;
-		debug("pfd_cache: growing pool to %d items\n", pool_size);
-		pfd_pool = xrealloc(pfd_pool, pool_size, sizeof(pfd_t));
+	if (pfd_count > pfd_pool_size) {
+		pfd_pool_size += PFD_CACHE_GROWTH;
+		debug("pfd_cache: growing pool to %d items\n", pfd_pool_size);
+		pfd_pool = xrealloc(pfd_pool, pfd_pool_size, sizeof(pfd_t));
 	}
 
 	/* Pick up the next item from the grown pool, since it's uninitialized,
@@ -82,20 +82,28 @@ pfd_cache_next()
 
 /*
  * Retrieve an pfd_t based on its fd.
+ *
+ * If this entry does not exist, create a new one.
  */
 pfd_t *
 pfd_cache_get(int fd)
 {
 	int i;
+	pfd_t *pfd;
 
 	for (i = 0; i < pfd_count; i++) {
-		if (pfd_pool[i].fd_type == FD_TYPE_INVALID)
+		pfd = &pfd_pool[i];
+
+		if (pfd->fd_type == FD_TYPE_INVALID)
 			continue;
-		if (pfd_pool[i].fd == fd)
-			return &pfd_pool[i];
+
+		if (pfd->fd == fd)
+			return pfd;
 	}
 
-	return NULL;
+	pfd = pfd_cache_add(fd, NULL);
+
+	return pfd;
 }
 
 
@@ -108,10 +116,16 @@ void
 pfd_cache_delete(int fd)
 {
 	int i;
+	pfd_t *pfd;
 
 	for (i = 0; i < pfd_count; i++) {
-		if (pfd_pool[i].fd == fd) {
-			pfd_clean(&pfd_pool[i]);
+		pfd = &pfd_pool[i];
+
+		if (pfd->fd_type == FD_TYPE_INVALID)
+			continue;
+
+		if (pfd->fd == fd) {
+			pfd_clean(pfd);
 			return;
 		}
 	}
@@ -122,7 +136,7 @@ pfd_cache_delete(int fd)
  * Add a file descriptor to the cache. This is used for incremental updates,
  * not for the initial bulk load. It will find empty spots before.
  */
-void
+pfd_t *
 pfd_cache_add(int fd, char *path)
 {
 	int i;
@@ -141,7 +155,17 @@ pfd_cache_add(int fd, char *path)
 
 	current->fd = fd;
 	current->fd_type = FD_TYPE_REG;
-	current->filename = xstrdup(path);
+
+	/* If a path was provided, attempt to populate the structure. */
+	if (path != NULL) {
+		current->filepath = xstrdup(path);
+		pfd_update_from_filepath(current);
+
+		if (current->filenode != InvalidOid)
+			pfd_update_from_pg(current);
+	}
+
+	return current;
 }
 
 
@@ -164,3 +188,21 @@ pfd_cache_preload_from_lsof(pid_t pid)
 	close(fd);
 }
 
+
+/*
+ * Print the content of the pfd_cache to stdout.
+ *
+ * This is mostly used for debugging.
+ */
+void
+pfd_cache_print()
+{
+	int i;
+	pfd_t *pfd;
+
+	for (i = 0; i < pfd_count; i++) {
+		pfd = &pfd_pool[i];
+		printf("%i\tfd_type=%i\tfd=%i\tfilenode=%i\n", i, pfd->fd_type,
+				pfd->fd, pfd->filenode);
+	}
+}

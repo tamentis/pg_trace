@@ -1,15 +1,22 @@
 BINARY=pg_trace
 OBJECTS=main.o trace.o strdelim.o utils.o xmalloc.o lsof.o pfd_cache.o pg.o \
-	relmapper.o rncache.o which.o ps.o pfd.o
+	relmapper.o rn_cache.o which.o ps.o pfd.o
 OBJECTS+=${EXTRA_OBJECTS}
+HEADERS=lsof.h pfd.h pfd_cache.h pg.h pg_crc32_table.h ps.h relmapper.h \
+	rn_cache.h strlcpy.h trace.h utils.h which.h xmalloc.h
 
 all: ${BINARY} random_reads
 
 ${BINARY}: ${OBJECTS}
 	${CC} ${LDFLAGS} -o ${BINARY} ${OBJECTS} ${CURSESLIB} 
 
+${OBJECTS}: ${HEADERS}
+
 random_reads: random_reads.c
 	${CC} random_reads.c -o random_reads
+
+ctags:
+	ctags *.c *.h
 
 clean:
 	rm -f ${BINARY} ${OBJECTS} random_reads

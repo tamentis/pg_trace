@@ -47,41 +47,10 @@ char *
 get_human_fd(int fd)
 {
 	pfd_t *pfd;
-	char buffer[MAX_HUMAN_FD_LENGTH];
-	char suffix[7] = "";
-	enum db_file_type type;
-	char *relname;
 
 	pfd = pfd_cache_get(fd);
 
-	if (pfd == NULL) {
-		snprintf(buffer, sizeof(buffer), "fd=%u", fd);
-	} else {
-		relname = pg_get_relname_from_filepath(pfd->filename, &type);
-
-		if (relname == NULL) {
-			snprintf(buffer, sizeof(buffer), "filenode=%s",
-					pfd->filename);
-		} else {
-			switch (type) {
-			case DB_FILE_TYPE_VM:
-				strlcpy(suffix, "(vm)", sizeof(suffix));
-				break;
-			case DB_FILE_TYPE_FSM:
-				strlcpy(suffix, "(fsm)", sizeof(suffix));
-				break;
-			case DB_FILE_TYPE_UNKNOWN:
-				strlcpy(suffix, "(?!?)", sizeof(suffix));
-			default:
-				break;
-			}
-
-			snprintf(buffer, sizeof(buffer), "relname=%s%s",
-					relname, suffix);
-		}
-	}
-
-	return xstrdup(buffer);
+	return pfd_get_repr(pfd);
 }
 
 
@@ -148,17 +117,16 @@ void
 process_func_open(int argc, char **argv, char *result)
 {
 	int fd;
-	char *human_fd, *path;
+	char *path;
 
 	if (argc != 2 && argc != 3)
 		errx(1, "error: open() with %u args", argc);
 
 	fd = xatoi(result);
-	human_fd = get_human_fd(fd);
 	path = resolve_path(argv[0]);
-
 	pfd_cache_add(fd, path);
-	printf("open(%s, ...) -> %s\n", path, human_fd);
+
+	printf("open(%s, ...) -> fd:%s\n", path, result);
 
 	if (path != NULL)
 		xfree(path);

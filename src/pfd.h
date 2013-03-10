@@ -15,6 +15,9 @@
  */
 
 
+#define MAX_HUMAN_FD_LENGTH	256
+
+
 /*
  * CHR to IPV6 types are directly mirrored from the lsof listing. New entries
  * coming from open are typically REG and only REG are used for relname
@@ -28,6 +31,7 @@
 enum fd_type {
 	FD_TYPE_CHR,
 	FD_TYPE_REG,
+	FD_TYPE_DIR,
 	FD_TYPE_FIFO,
 	FD_TYPE_IPV4,
 	FD_TYPE_IPV6,
@@ -36,16 +40,34 @@ enum fd_type {
 };
 
 
+/*
+ * Assuming the fd is REG, the file_type defines what sort of file the fd
+ * points to within the realm of a postgres cluster.
+ */
+enum file_type {
+	FILE_TYPE_TABLE,
+	FILE_TYPE_VM,
+	FILE_TYPE_FSM,
+	FILE_TYPE_XLOG,
+	FILE_TYPE_UNKNOWN
+};
+
+
 typedef struct _pfd_t {
 	Oid		 database_oid;
 	Oid		 oid;
 	Oid		 filenode;
 	int		 fd;
+	bool		 shared;
 	enum fd_type	 fd_type;
-	char		*filename;
+	enum file_type	 file_type;
+	char		*filepath;
 	char		*relname;
 } pfd_t;
 
 
 pfd_t		*pfd_new(int);
 void		 pfd_clean(pfd_t *);
+char		*pfd_get_repr(pfd_t *);
+void		 pfd_update_from_filepath(pfd_t *);
+void		 pfd_update_from_pg(pfd_t *);

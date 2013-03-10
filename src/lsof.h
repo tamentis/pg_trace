@@ -15,9 +15,6 @@
  */
 
 
-#define MAX_HUMAN_FD_LENGTH	256
-
-
 void		 lsof_refresh_cache(pid_t);
 pfd_t		*lsof_get_pfd(int);
 void		 lsof_resolve_path(void);

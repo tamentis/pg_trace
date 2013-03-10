@@ -131,15 +131,17 @@ lsof_read_lines(int fd)
 			break;
 		/* file type */
 		case 't':
-			if (strcmp(line, "CHR") == 0)
+			if (strcmp(c, "CHR") == 0)
 				current->fd_type = FD_TYPE_CHR;
-			else if (strcmp(line, "REG") == 0)
+			else if (strcmp(c, "REG") == 0)
 				current->fd_type = FD_TYPE_REG;
-			else if (strcmp(line, "FIFO") == 0)
+			else if (strcmp(c, "DIR") == 0)
+				current->fd_type = FD_TYPE_DIR;
+			else if (strcmp(c, "FIFO") == 0)
 				current->fd_type = FD_TYPE_FIFO;
-			else if (strcmp(line, "IPv4") == 0)
+			else if (strcmp(c, "IPv4") == 0)
 				current->fd_type = FD_TYPE_IPV4;
-			else if (strcmp(line, "IPv6") == 0)
+			else if (strcmp(c, "IPv6") == 0)
 				current->fd_type = FD_TYPE_IPV6;
 			else {
 				current->fd_type = FD_TYPE_UNKNOWN;
@@ -147,7 +149,7 @@ lsof_read_lines(int fd)
 			break;
 		/* file name */
 		case 'n':
-			current->filename = xstrdup(c);
+			current->filepath = xstrdup(c);
 			break;
 		default:
 			errx(1, "lsof_read_lines() unknown type '%c'", type);

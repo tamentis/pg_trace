@@ -15,13 +15,4 @@
  */
 
 
-enum db_file_type {
-	DB_FILE_TYPE_TABLE,
-	DB_FILE_TYPE_VM,
-	DB_FILE_TYPE_FSM,
-	DB_FILE_TYPE_UNKNOWN
-};
-
-
-char		*pg_get_relname_from_filepath(char *, enum db_file_type *);
 void		 pg_load_rn_cache_from_pg_class(void);

@@ -2,3 +2,5 @@
 pg_trace
 Makefile
 random_reads
+tags
+LOG

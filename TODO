@@ -1,9 +1,10 @@
 now!
 ----
-- create a structure for 'pg_fd' that has all the right properties to be
-  carried around instead of passing around Oids and chars..
 - organize it all more like a strace translator, document it as such.
 - should be able to take input on stdin instead of strace.
+- improve random_reads to keep a few fds open at the same time.
+- skip . and .. in random_reads.
+- you have to deal with two relmaps at the same time (local and shared).
 
 doc
 ---
