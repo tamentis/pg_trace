@@ -1,6 +1,5 @@
-doc
----
- - explain how this whole thing work in README.
+pg_trace
+========
 
 trace
 -----
@@ -10,11 +9,7 @@ trace
 postgres
 --------
  - check for postgres version.
- - try to interpret the content of read-writes?
  - what happens if pg writes pg_filenode while we read it?
- - guess the position in a table based on chunks (.1, .2 etc.)
- - understand table inheritance? try to estimate how many tables were scanned
-   as part of a parent-table scan
  - only refresh the rn_cache if we see a write on pg_class.
 
 ui
@@ -38,3 +33,21 @@ multi-platform
  - [openbsd] make a port
  - [debian/ubuntu] make package
  - decide if we do the trace switches dynamically or in ./configure.
+
+
+pg_scopy
+========
+That would be a top-like took, wrapping pg_trace and showing the top files by access and
+where the cursor is (using lseek() data, the gigabyte file index and possibly
+the inheritance within tables). It would look like that:
+
+    relname          read        written        cursor
+    ----------------------------------------------------------
+    my_table_a       1.14 MiB    0.2 MiB        45%
+    another_table    204.1 GiB   1.4 MiB        5%
+    pg_indexes       250 KiB     0 B            14%
+
+ - try to interpret the content of read-writes?
+ - guess the position in a table based on chunks (.1, .2 etc.)
+ - understand table inheritance? try to estimate how many tables were scanned
+   as part of a parent-table scan
