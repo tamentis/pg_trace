@@ -1,6 +1,5 @@
 now!
 ----
-- skip . and .. in random_reads.
 - you have to deal with two relmaps at the same time (local and shared).
 
 doc
@@ -11,7 +10,6 @@ trace
 -----
  - capture hex only and decode everything where appropriate, remove all the
    escape-dance code.
- - pass through (s)trace calls
 
 postgres
 --------
@@ -22,7 +20,6 @@ postgres
  - understand table inheritance? try to estimate how many tables were scanned
    as part of a parent-table scan
  - only refresh the rn_cache if we see a write on pg_class.
- - detect _fsm and _vm files and get the relname just as much, maybe with a suffix.
 
 ui
 --
@@ -37,8 +34,6 @@ code
 ----
  - check for more leaks (valgrind)
  - fix debugging (not clear what does what, what outputs what)
- - two get and cache mechanisms: fd->filename, oid/filenode->relname, let's
-   clarify the code around this.
  - also put the relmap in rn_cache?
 
 multi-platform
@@ -46,5 +41,4 @@ multi-platform
  - [openbsd] find a way to make it work with ktrace/kdump
  - [openbsd] make a port
  - [debian/ubuntu] make package
- - [mac] make it work with dtruss (OS X).
  - decide if we do the trace switches dynamically or in ./configure.
