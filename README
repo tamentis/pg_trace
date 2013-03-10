@@ -53,6 +53,16 @@ DISCLAIMER
      could be doing *ANYTHING*, it's very likely to be exploitable. If you're
      security conscious, please read the code, clone, fix and merge request.
 
+EXAMPLES
+     Real-time-ish tracing of a backend:
+
+	 sudo pg_trace -p 12345
+
+     Capture and tracing after the fact:
+
+	 sudo strace -p 12345 -o my_trace.out
+	 sudo -u postgres pg_trace < my_trace.out
+
 REQUIREMENTS
      At a minimum, you'll need strace(1) if you're on Linux or dtruss(1m) on
      Mac OS X. Optionally, you can benefit from having lsof(8) to preload the
