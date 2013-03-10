@@ -209,7 +209,6 @@ pfd_update_from_pg(pfd_t *pfd)
 	if (rn_cache_initial_load == 0) {
 		pg_load_rn_cache_from_pg_class();
 		rn_cache_initial_load = 1;
-		rn_cache_print();
 	}
 
 	/*

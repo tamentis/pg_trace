@@ -22,7 +22,7 @@
 .Sh SYNOPSIS
 .Nm pg_trace
 .Bk -words
-.Op Fl hd
+.Op Fl hdn
 .Op Fl p Ar pid
 .Ek
 .Sh DESCRIPTION
@@ -50,6 +50,9 @@ Define what process to spy on. This is optional if you feed
 a trace via stdin.
 .It Fl d
 Debug flag, print on screen everything that's going on in the backend.
+.It Fl n
+Hide all non-interpreted strace function calls. This flag will allow you to
+concentrate on IO related system calls (open, close, read, write, ...).
 .It Fl h
 Print usage information.
 .El

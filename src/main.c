@@ -37,6 +37,7 @@
 
 #define _DEBUG_FLAG
 int debug_flag = 0;
+int show_strace = 1;
 char *pwd = NULL;
 
 
@@ -173,7 +174,7 @@ process_func(char *line, char *func_name, int argc, char **argv, char *result)
 		process_func_close(argc, argv, result);
 	} else if (strcmp(func_name, "lseek") == 0) {
 		process_func_seek(argc, argv, result);
-	} else {
+	} else if (show_strace) {
 		printf("%s", line);
 	}
 }
@@ -202,10 +203,13 @@ main(int argc, char **argv)
 	extern char *optarg;
 	pid_t pid = 0;
 
-	while ((opt = getopt(argc, argv, "hp:d")) != -1) {
+	while ((opt = getopt(argc, argv, "nhp:d")) != -1) {
 		switch (opt) {
 		case 'p':
 			pid = xatoi(optarg);
+			break;
+		case 'n':
+			show_strace = 0;
 			break;
 		case 'd':
 			debug_flag = 1;

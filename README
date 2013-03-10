@@ -5,7 +5,7 @@ NAME
      pg_trace — trace postgres processes
 
 SYNOPSIS
-     pg_trace [-hd] [-p pid]
+     pg_trace [-hdn] [-p pid]
 
 DESCRIPTION
      pg_trace is a wrapper around strace-like tools with enriched information
@@ -31,6 +31,10 @@ OPTIONS
 
      -d      Debug flag, print on screen everything that's going on in the
 	     backend.
+
+     -n      Hide all non-interpreted strace function calls. This flag will
+	     allow you to concentrate on IO related system calls (open, close,
+	     read, write, ...).
 
      -h      Print usage information.
 
