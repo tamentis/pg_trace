@@ -42,29 +42,6 @@ int rn_cache_initial_load = 0;
 
 
 /*
- * Allocate a new pfd.
- *
- * All values are initialized to Invalid/NULL.
- */
-pfd_t *
-pfd_new(int fd)
-{
-	pfd_t *new;
-
-	new = xmalloc(sizeof(pfd_t));
-	new->fd = fd;
-	new->fd_type = FD_TYPE_INVALID;
-	new->database_oid = InvalidOid;
-	new->oid = InvalidOid;
-	new->filenode = InvalidOid;
-	new->relname = NULL;
-	new->filepath = NULL;
-
-	return new;
-}
-
-
-/*
  * Free all the properties of this object.
  *
  * This will not free the item itself, this is the responsibility of the

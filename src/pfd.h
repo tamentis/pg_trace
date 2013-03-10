@@ -66,7 +66,6 @@ typedef struct _pfd_t {
 } pfd_t;
 
 
-pfd_t		*pfd_new(int);
 void		 pfd_clean(pfd_t *);
 char		*pfd_get_repr(pfd_t *);
 void		 pfd_update_from_filepath(pfd_t *);
