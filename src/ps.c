@@ -16,7 +16,7 @@
  *
  * Since there is no better way to get the current working directory of a
  * process (in a cross-platform fashion), we use 'ps e pid' at the start of
- * pg_trace and assume this value remain the same. This path is used when
+ * pg_trace and assume this value remains the same. This path is used when
  * pg_trace encounters relative path and needs to resolve them.
  */
 

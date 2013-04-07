@@ -1,6 +1,12 @@
 pg_trace
 ========
 
+next in line
+------------
+ - lsof shouldn't be mandatory
+ - when lsof is missing or when using stdin, print a WARNING on stderr:
+ 	WARNING: lsof couldn't be used to preload existing file descriptors.
+
 trace
 -----
  - capture hex only and decode everything where appropriate, remove all the
@@ -16,8 +22,6 @@ ui
 --
  - progress mode (curses? show the currently opened tables and how much they
    are being used, how far we are in the lseek?)
- - if lsof is missing, just avoid pre-loading the pfd cache and start from
-   scratch.
 
 code
 ----
