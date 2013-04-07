@@ -14,6 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * This file contains all the pieces used to open, read and crudely parse the
+ * stream of function calls coming from a system trace program (strace, dtruss,
+ * ktrace, etc.)
+ */
+
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -29,6 +35,7 @@ char *trace_path = NULL;
 int use_dtruss = 0;
 
 
+/* Spawn strace (on Linux) */
 void
 trace_spawn_strace(char *pid)
 {
@@ -42,6 +49,7 @@ trace_spawn_strace(char *pid)
 }
 
 
+/* Spawn dtruss (on Mac) */
 void
 trace_spawn_dtruss(char *pid)
 {
@@ -53,6 +61,10 @@ trace_spawn_dtruss(char *pid)
 }
 
 
+/*
+ * Given a pid, return the read end of a pipe returning the output from the
+ * trace program (strace or dtruss).
+ */
 int
 trace_open(pid_t pid)
 {
@@ -230,7 +242,7 @@ trace_process_line(char *line,
 		argc++;
 	}
 
-	/* Extract a function return if any. */
+	/* Extract a return value if any. */
 	a = strchr(c, '=');
 	if (a != NULL) {
 		/* Skip the spaces. */
@@ -240,8 +252,8 @@ trace_process_line(char *line,
 		result = a;
 
 		/*
-		 * Our friends at Apple have two values as return, TODO: figure
-		 * out what this is, if we need it...
+		 * Our friends at Apple have two return values. I have no idea
+		 * what the other value is, TODO: figure it out.
 		 */
 		if (use_dtruss && (a = strchr(a, ' ')) != NULL)
 			*a = '\0';
@@ -254,7 +266,9 @@ trace_process_line(char *line,
 
 	/*
 	 * Looks like the folks at Apple decided to wrap all the system calls
-	 * and name their wrappers with a _nocancel suffix. Search and destroy.
+	 * and name their wrappers with a _nocancel suffix, for the purpose of
+	 * pg_trace, we will ignore them and assume we always have a matching
+	 * system function without _nocancel.
 	 */
 	if ((c = strstr(func_name, "_nocancel")) != NULL)
 		*c = '\0';

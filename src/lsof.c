@@ -12,6 +12,11 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ *
+ * This module contains all the functions relative to spawning, streaming and
+ * crudely parsing lsof output. The output from lsof is used to initially
+ * populate the pfd_cache.
  */
 
 #include <stdio.h>
@@ -78,12 +83,18 @@ lsof_open(pid_t pid)
 }
 
 
+/*
+ * Read lsof lines and feed the pfd_cache with the values.
+ *
+ * Every time we hit a field of type 'f', we move on to the next record.
+ */
 void
 lsof_read_lines(int fd)
 {
 	FILE *fp;
 	char line[MAX_LINE_LENGTH], type, *c;
 	pfd_t *current = NULL;
+	int fd_field;
 
 	fp = fdopen(fd, "r");
 	if (fp == NULL)
@@ -95,23 +106,39 @@ lsof_read_lines(int fd)
 		if (c != NULL)
 			*c = '\0';
 
-		/* Remove the type off the line. */
+		/* Separate the field type from the value. */
 		type = line[0];
 		c = line + 1;
 
-		/* Access mode fields help us filter io specific file
-		 * descriptors. */
-		if (type == 'a') {
-			if (c[0] == ' ') {
-				current = NULL;
-			} else {
+		/* Records start with 'f' fields. */
+		if (type == 'f') {
+			fd_field = xatoi_or_zero(c);
+
+			/* Not a numeric file descriptor, ignore it. */
+			if (fd_field == 0) {
+				continue;
+			}
+
+			/* 
+			 * Before we move on to the next file descriptor, make
+			 * sure the previous one is valid.
+			 */
+			if (current == NULL || (current->fd_type == FD_TYPE_REG
+						&& current->filepath != NULL)) {
 				current = pfd_cache_next();
 			}
-			continue;
+
+			pfd_clean(current);
+			current->fd = fd_field;
 		}
 
-		if (current == NULL)
+		/*
+		 * This should only be true if we are going through the first
+		 * few lines.
+		 */
+		if (current == NULL) {
 			continue;
+		}
 
 		switch (type) {
 		/* access mode */
@@ -119,11 +146,9 @@ lsof_read_lines(int fd)
 			break;
 		/* pid, the first record */
 		case 'p':
-			continue;
 			break;
-		/* fd number */
+		/* fd number (handled above) */
 		case 'f':
-			current->fd = xatoi(c);
 			break;
 		/* file type */
 		case 't':

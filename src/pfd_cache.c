@@ -12,6 +12,10 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ *
+ * This modules contains all the tools the manage the internal cache of file
+ * descriptors.
  */
 
 #include <stdio.h>
@@ -193,7 +197,8 @@ pfd_cache_preload_from_lsof(pid_t pid)
 /*
  * Print the content of the pfd_cache to stdout.
  *
- * This is mostly used for debugging.
+ * This is mostly used for debugging values are tab-delimited, headers are on
+ * the first line.
  */
 void
 pfd_cache_print()
@@ -201,9 +206,11 @@ pfd_cache_print()
 	int i;
 	pfd_t *pfd;
 
+	printf("index\tfd_type\tfd\tfilenode\tfilepath\trelname\n");
+
 	for (i = 0; i < pfd_count; i++) {
 		pfd = &pfd_pool[i];
-		printf("%i\tfd_type=%i\tfd=%i\tfilenode=%i\n", i, pfd->fd_type,
-				pfd->fd, pfd->filenode);
+		printf("%i\t%i\t%i\t%i\t%s\t%s\n", i, pfd->fd_type, pfd->fd,
+				pfd->filenode, pfd->filepath, pfd->relname);
 	}
 }

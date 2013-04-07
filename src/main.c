@@ -203,7 +203,7 @@ main(int argc, char **argv)
 	extern char *optarg;
 	pid_t pid = 0;
 
-	while ((opt = getopt(argc, argv, "nhp:d")) != -1) {
+	while ((opt = getopt(argc, argv, "p:ndh")) != -1) {
 		switch (opt) {
 		case 'p':
 			pid = xatoi(optarg);
@@ -222,7 +222,7 @@ main(int argc, char **argv)
 
 	signal(SIGINT, sigint_handler);
 
-	/* Nothing piped to stdin, we'll need tools. */
+	/* Nothing piped to stdin, we'll need tools to obtain data. */
 	if (isatty(STDIN_FILENO)) {
 		if (geteuid() != 0)
 			errx(1, "you need to be root");

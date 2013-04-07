@@ -227,6 +227,9 @@ pfd_update_from_pg(pfd_t *pfd)
 }
 
 
+/*
+ * Returns a human readable string for this file descriptor.
+ */
 char *
 pfd_get_repr(pfd_t *pfd)
 {
