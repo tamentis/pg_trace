@@ -51,6 +51,22 @@ HOW IT WORKS
      somewhat brutal but avoids setting up access to root and/or bother the
      existing processes.
 
+     Here is some ASCII-art to explain the modules relationships:
+
+                             tty
+                              ^
+     +-----------+      +-----------+      +-----------+      +-----------+
+     |     ps    | ---> |   main    | <--- | pfd_cache | <--- |    lsof   |
+     +-----------+      +-----------+      +-----------+      +-----------+
+                              ^                ^   ^
+                        +-----------+          |   |          +-----------+
+                        |   trace   | ---------'   `--------- |  rn_cache |
+                        +-----------+                         +-----------+
+                                                                    ^
+                                                              +-----------+
+                                                              | relmapper |
+                                                              +-----------+
+
 DISCLAIMER
      You're going to run pg_trace as root, you don't have much of a choice.
      Since it's written in C and since it parses data from a process that

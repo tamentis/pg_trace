@@ -39,6 +39,7 @@
 int debug_flag = 0;
 int show_strace = 1;
 char *pwd = NULL;
+extern char *current_cluster_path;
 
 
 /*
@@ -92,7 +93,8 @@ process_func_seek(int argc, char **argv, char *result)
 
 /*
  * Attempt to produce an absolute path if a relative path is given. Using the
- * 'pwd' global variable set in main.
+ * 'pwd' global variable set in main, if 'pwd' couldn't get populated, take a
+ * chance and use the cluster path.
  */
 char *
 resolve_path(char *path)
@@ -105,7 +107,14 @@ resolve_path(char *path)
 	if (path[0] == '/')
 		return xstrdup(path);
 
-	snprintf(buffer, sizeof(buffer), "%s/%s", pwd, path);
+	if (pwd != NULL) {
+		snprintf(buffer, sizeof(buffer), "%s/%s", pwd, path);
+	} else if (current_cluster_path != NULL) {
+		snprintf(buffer, sizeof(buffer), "%s/%s", current_cluster_path,
+				path);
+	} else {
+		snprintf(buffer, sizeof(buffer), "?/%s", path);
+	}
 
 	return xstrdup(buffer);
 }
@@ -123,9 +132,12 @@ process_func_open(int argc, char **argv, char *result)
 	if (argc != 2 && argc != 3)
 		errx(1, "error: open() with %u args", argc);
 
-	fd = xatoi(result);
 	path = resolve_path(argv[0]);
-	pfd_cache_add(fd, path);
+
+	if (result != NULL) {
+		fd = xatoi(result);
+		pfd_cache_add(fd, path);
+	}
 
 	printf("open(%s, ...) -> fd:%s\n", path, result);
 

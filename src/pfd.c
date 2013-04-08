@@ -177,6 +177,7 @@ parse_filenode:
 	if (current_cluster_path == NULL) {
 		*(oid - 1) = '\0';
 		current_cluster_path = xstrdup(filepath);
+		debug("found cluster path: %s\n", current_cluster_path);
 	}
 
 	xfree(filepath);
@@ -186,9 +187,7 @@ parse_filenode:
 
 
 /*
- * Given a pfd's relname.
- *
- * If we have none in file, attempt to discover it.
+ * Resolve the relname (relationship name) of a pfd.
  */
 void
 pfd_update_from_pg(pfd_t *pfd)
@@ -202,8 +201,8 @@ pfd_update_from_pg(pfd_t *pfd)
 		errx(1, "got in pfd_update_from_pg without filenode");
 
 	/*
-	 * If we the rn cache is empty at this point, fill it, we should have
-	 * all the path required to load pg_class.
+	 * If the rn_cache is empty at this point, fill it, we should have all
+	 * the path required to load pg_class.
 	 */
 	if (pfd->shared == false && rn_cache_local_loaded == false) {
 		pg_load_rn_cache_from_pg_class(pfd->shared);
@@ -212,7 +211,7 @@ pfd_update_from_pg(pfd_t *pfd)
 
 	/*
 	 * Attempt to get the relname from the relmapper, in case this filepath
-	 * belongs to a "special" object that does not have a filenode in the
+	 * belongs to a "special" object which does not have a filenode in the
 	 * pg_class table.
 	 */
 	load_relmap_file(pfd->shared);

@@ -171,6 +171,7 @@ lsof_read_lines(int fd)
 		/* file name */
 		case 'n':
 			current->filepath = xstrdup(c);
+			pfd_update_from_filepath(current);
 			break;
 		default:
 			errx(1, "lsof_read_lines() unknown type '%c'", type);
