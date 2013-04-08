@@ -58,6 +58,7 @@ typedef struct _pfd_t {
 	Oid		 oid;
 	Oid		 filenode;
 	int		 fd;
+	int		 part;
 	bool		 shared;
 	enum fd_type	 fd_type;
 	enum file_type	 file_type;

@@ -51,6 +51,7 @@ void
 pfd_clean(pfd_t *pfd)
 {
 	pfd->fd_type = FD_TYPE_INVALID;
+	pfd->part = 0;
 
 	if (pfd->relname != NULL) {
 		xfree(pfd->relname);
@@ -92,7 +93,7 @@ pfd_clean(pfd_t *pfd)
 void
 pfd_update_from_filepath(pfd_t *pfd)
 {
-	int i;
+	int i, part = 0;
 	char *c, *oid, *filepath;
 	Oid db_oid = InvalidOid;
 
@@ -142,8 +143,10 @@ parse_filenode:
 	/* Skip the part chunk at the end of the OID, TODO: use that for the
 	 * progress management... later (each file is 1GB). */
 	c = strchr(oid, '.');
-	if (c != NULL)
+	if (c != NULL) {
 		*c = '\0';
+		part = xatoi_or_zero(c + 1);
+	}
 
 	/* If the file is a visibility map or a free space map, we still want
 	 * to resolve the table. */
@@ -155,6 +158,7 @@ parse_filenode:
 		pfd->file_type = FILE_TYPE_FSM;
 	} else {
 		pfd->file_type = FILE_TYPE_TABLE;
+		pfd->part = part;
 	}
 
 	/* Whatever's in oid at this point, has got to be an int, if the
@@ -246,7 +250,12 @@ pfd_get_repr(pfd_t *pfd)
 				break;
 			case FILE_TYPE_UNKNOWN:
 				strlcpy(suffix, "(?!?)", sizeof(suffix));
+				break;
 			default:
+				if (pfd->part > 0) {
+					snprintf(suffix, sizeof(suffix), ".%d",
+							pfd->part);
+				}
 				break;
 		}
 
